@@ -14,6 +14,9 @@ import {
   BookOpen,
   Copy,
   CheckCircle2,
+  Code2,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +36,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import type { ShopifyInjectStatus } from "@/types";
 
 const CALLBACK_URL = "https://api.bersenker.shop/api/shopify/callback";
 const APP_URL = "https://api.bersenker.shop";
@@ -240,17 +244,25 @@ export default function IntegrationsPage() {
   const [savingCreds, setSavingCreds] = useState(false);
   const [showCredsForm, setShowCredsForm] = useState(false);
 
+  // Injeção do snippet de checkout no tema
+  const [checkoutInjected, setCheckoutInjected] = useState(false);
+  const [injectedThemeId, setInjectedThemeId] = useState<number | null>(null);
+  const [injectedAt, setInjectedAt] = useState<string | null>(null);
+  const [injecting, setInjecting] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
   const fetchShopifyStatus = async () => {
     if (!selectedStore) return;
     try {
-      const data = await api.get<{
-        connected: boolean;
-        shopify_domain: string | null;
-        credentials_configured: boolean;
-      }>(`/stores/${selectedStore.id}/shopify/status`);
+      const data = await api.get<ShopifyInjectStatus>(
+        `/stores/${selectedStore.id}/shopify/status`
+      );
       setShopifyConnected(data.connected);
       setShopifyDomain(data.shopify_domain);
       setCredentialsConfigured(data.credentials_configured);
+      setCheckoutInjected(data.checkout_injected);
+      setInjectedThemeId(data.injected_theme_id);
+      setInjectedAt(data.injected_at);
     } catch {
       /* ignore */
     } finally {
@@ -316,6 +328,48 @@ export default function IntegrationsPage() {
       toast.error("Erro ao iniciar sincronização.");
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleInjectCheckout = async () => {
+    if (!selectedStore) return;
+    setInjecting(true);
+    try {
+      const data = await api.post<{
+        theme_id: number;
+        theme_name: string;
+      }>(`/stores/${selectedStore.id}/shopify/inject-checkout`);
+      setCheckoutInjected(true);
+      setInjectedThemeId(data.theme_id);
+      setInjectedAt(new Date().toISOString());
+      toast.success(
+        `Código de checkout injetado no tema #${data.theme_id} (${data.theme_name}).`
+      );
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Erro ao injetar código no tema.";
+      toast.error(message);
+    } finally {
+      setInjecting(false);
+    }
+  };
+
+  const handleRemoveCheckout = async () => {
+    if (!selectedStore) return;
+    if (!confirm("Remover o código de checkout do tema Shopify?")) return; // eslint-disable-line no-alert
+    setRemoving(true);
+    try {
+      await api.delete(`/stores/${selectedStore.id}/shopify/inject-checkout`);
+      setCheckoutInjected(false);
+      setInjectedThemeId(null);
+      setInjectedAt(null);
+      toast.success("Código de checkout removido do tema.");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Erro ao remover código do tema.";
+      toast.error(message);
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -480,6 +534,105 @@ export default function IntegrationsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Checkout no tema Shopify */}
+        {shopifyConnected && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/15">
+                  <Code2 className="h-5 w-5 text-indigo-500" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Checkout no tema</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Redireciona o carrinho e o &ldquo;Comprar agora&rdquo; para o seu checkout.
+                  </p>
+                </div>
+              </div>
+              <Badge variant={checkoutInjected ? "success" : "secondary"}>
+                {checkoutInjected ? "Injetado" : "Não injetado"}
+              </Badge>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="space-y-1 text-sm">
+                  {checkoutInjected ? (
+                    <p className="text-muted-foreground">
+                      Código injetado no tema{" "}
+                      <span className="font-medium text-foreground">
+                        #{injectedThemeId ?? "—"}
+                      </span>
+                      {injectedAt && (
+                        <>
+                          {" "}
+                          em{" "}
+                          <span className="font-medium text-foreground">
+                            {new Date(injectedAt).toLocaleString("pt-BR")}
+                          </span>
+                        </>
+                      )}
+                      .
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      O código do checkout ainda não foi injetado no tema
+                      publicado. Clique em{" "}
+                      <strong>Integrar código no tema</strong> para ativar o
+                      redirecionamento.
+                    </p>
+                  )}
+                </div>
+
+                {/* Aviso de reautorização para lojas conectadas antes da atualização */}
+                <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                  <p>
+                    A injeção usa o escopo{" "}
+                    <code className="font-mono">write_themes</code>. Lojas
+                    conectadas antes desta atualização precisam{" "}
+                    <strong>Reconectar a Shopify</strong> acima para conceder a
+                    nova permissão.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleInjectCheckout}
+                    disabled={injecting}
+                  >
+                    <Code2 className="h-4 w-4" />
+                    {injecting
+                      ? "Injetando..."
+                      : checkoutInjected
+                        ? "Reintegrar código no tema"
+                        : "Integrar código no tema"}
+                  </Button>
+                  {checkoutInjected && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleRemoveCheckout}
+                      disabled={removing}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {removing ? "Removendo..." : "Remover código do tema"}
+                    </Button>
+                  )}
+                </div>
+
+                {checkoutInjected && (
+                  <p className="text-xs text-muted-foreground">
+                    Se você <strong>trocou de tema</strong> na Shopify, clique em{" "}
+                    <strong>Reintegrar código no tema</strong> para injetar no
+                    tema atual.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* WhatsApp — Placeholder */}
         <Card>

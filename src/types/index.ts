@@ -6,6 +6,15 @@ export interface User {
   email: string;
 }
 
+export interface ShopifyInjectStatus {
+  connected: boolean;
+  shopify_domain: string | null;
+  credentials_configured: boolean;
+  checkout_injected: boolean;
+  injected_theme_id: number | null;
+  injected_at: string | null;
+}
+
 export interface Store {
   id: string;
   name: string;
