@@ -134,9 +134,9 @@ export default function DashboardOverview() {
                   className="flex items-center justify-between py-3"
                 >
                   <div className="flex items-center gap-3">
-                    {order.product?.image_url ? (
+                    {order.items?.[0]?.product?.image_url ? (
                       <img
-                        src={order.product.image_url}
+                        src={order.items[0].product.image_url}
                         alt=""
                         className="h-9 w-9 rounded-lg object-cover"
                       />
@@ -147,7 +147,11 @@ export default function DashboardOverview() {
                     )}
                     <div>
                       <p className="text-sm font-medium">
-                        {order.product?.name ?? `#${order.product_id}`}
+                        {order.items && order.items.length > 0
+                          ? order.items.length > 1
+                            ? `${order.items[0].name} +${order.items.length - 1}`
+                            : order.items[0].name
+                          : `#${order.id}`}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {order.customer_name} — {formatDate(order.created_at)}

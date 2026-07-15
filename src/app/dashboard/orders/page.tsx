@@ -161,7 +161,7 @@ export default function OrdersPage() {
               <TableRow>
                 <TableHead className="w-16">ID</TableHead>
                 <TableHead>Cliente</TableHead>
-                <TableHead>Produto</TableHead>
+                <TableHead>Itens</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Método</TableHead>
                 <TableHead>Status</TableHead>
@@ -186,8 +186,28 @@ export default function OrdersPage() {
                       </p>
                     </div>
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate">
-                    {order.product?.name ?? `#${order.product_id}`}
+                  <TableCell className="max-w-[220px]">
+                    {order.items && order.items.length > 0 ? (
+                      <div className="space-y-0.5">
+                        {order.items.slice(0, 2).map((item) => (
+                          <div
+                            key={item.id}
+                            className="truncate text-xs"
+                            title={item.name}
+                          >
+                            {item.qty > 1 ? `${item.qty}× ` : ""}
+                            {item.name}
+                          </div>
+                        ))}
+                        {order.items.length > 2 && (
+                          <div className="text-xs text-muted-foreground">
+                            +{order.items.length - 2} outro(s)
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="font-medium">
                     {formatCurrency(Number(order.amount))}
@@ -297,19 +317,35 @@ export default function OrdersPage() {
 
               <Separator />
 
-              {/* Produto / Pagamento */}
+              {/* Itens / Pagamento */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="mb-1 font-semibold">Produto</p>
-                  <p className="text-muted-foreground">
-                    {selectedOrder.product?.name ?? `#${selectedOrder.product_id}`}
-                  </p>
-                  {selectedOrder.product?.image_url && (
-                    <img
-                      src={selectedOrder.product.image_url}
-                      alt=""
-                      className="mt-2 h-16 w-16 rounded-lg object-cover"
-                    />
+                  <p className="mb-2 font-semibold">Itens</p>
+                  {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedOrder.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-2 text-muted-foreground"
+                        >
+                          {item.product?.image_url ? (
+                            <img
+                              src={item.product.image_url}
+                              alt=""
+                              className="h-8 w-8 rounded object-cover"
+                            />
+                          ) : null}
+                          <div className="flex-1">
+                            <p className="text-foreground">{item.name}</p>
+                            <p className="text-xs">
+                              {item.qty}× {formatCurrency(Number(item.unit_price))}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">—</p>
                   )}
                 </div>
                 <div>

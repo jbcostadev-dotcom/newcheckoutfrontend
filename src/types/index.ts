@@ -22,11 +22,13 @@ export interface Product {
   id: number;
   store_id: number;
   shopify_product_id?: string | null;
+  shopify_variant_id?: string | null;
   name: string;
   description?: string | null;
   price: number;
   compare_at_price?: number | null;
   image_url?: string | null;
+  checkout_url?: string | null;
   is_active: boolean;
   created_at?: string;
 }
@@ -34,10 +36,19 @@ export interface Product {
 export type OrderStatus = "pending" | "paid" | "failed" | "refunded";
 export type PaymentMethod = "pix" | "credit_card";
 
+export interface OrderItem {
+  id: number;
+  order_id: number;
+  product_id?: number | null;
+  name: string;
+  qty: number;
+  unit_price: number;
+  product?: Pick<Product, "id" | "name" | "image_url" | "price"> | null;
+}
+
 export interface Order {
   id: number;
   store_id: number;
-  product_id: number;
   customer_name: string;
   customer_email: string;
   customer_phone?: string | null;
@@ -50,7 +61,7 @@ export interface Order {
   pix_copia_cola?: string | null;
   created_at: string;
   updated_at?: string;
-  product?: Pick<Product, "id" | "name" | "image_url" | "price">;
+  items?: OrderItem[];
 }
 
 export type GatewayProvider =
