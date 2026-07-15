@@ -5,15 +5,16 @@ import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 
-import { api, setToken } from "@/lib/api";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -22,20 +23,12 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await api.post<{ token: string } & Record<string, unknown>>(
-        "/login",
-        { email, password },
-        { auth: false }
-      );
-      // The Laravel AuthController returns `access_token` or `token`
-      const token = (data as Record<string, unknown>).token as string
-        ?? (data as Record<string, unknown>).access_token as string;
-      setToken(token);
-      toast.success("Login realizado com sucesso!");
-      window.location.href = "/dashboard";
+      await api.post("/register", { name, email, password }, { auth: false });
+      toast.success("Conta criada com sucesso! Faça login.");
+      window.location.href = "/";
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Credenciais inválidas.";
+        err instanceof Error ? err.message : "Erro ao criar conta.";
       toast.error(message);
     } finally {
       setLoading(false);
@@ -44,7 +37,6 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      {/* Theme toggle fixo no topo */}
       <div className="fixed right-4 top-4">
         <ThemeToggle />
       </div>
@@ -55,16 +47,26 @@ export default function LoginPage() {
             <ShoppingBag className="h-6 w-6" />
           </div>
           <div className="text-center">
-            <h1 className="text-xl font-bold tracking-tight">
-              Bem-vindo de volta
-            </h1>
+            <h1 className="text-xl font-bold tracking-tight">Criar Conta</h1>
             <p className="text-sm text-muted-foreground">
-              Acesse seu painel para gerenciar o checkout
+              Comece a gerenciar o seu checkout de alta conversão
             </p>
           </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome Completo</Label>
+              <Input
+                id="name"
+                type="text"
+                required
+                placeholder="Jorge Admin"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
               <Input
@@ -83,10 +85,10 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 required
-                placeholder="••••••••"
+                placeholder="•••7••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
+                autoComplete="new-password"
               />
             </div>
             <Button
@@ -94,16 +96,16 @@ export default function LoginPage() {
               className="w-full"
               disabled={loading}
             >
-              {loading ? "Entrando..." : "Entrar no Painel"}
+              {loading ? "Criando Conta..." : "Cadastrar e Começar"}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Não tem uma conta?{" "}
+            Já tem uma conta?{" "}
             <Link
-              href="/register"
+              href="/"
               className="font-medium text-primary hover:underline"
             >
-              Criar conta
+              Fazer login
             </Link>
           </p>
         </CardContent>
