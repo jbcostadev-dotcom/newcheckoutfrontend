@@ -346,9 +346,8 @@ export default function IntegrationsPage() {
         `Código de checkout injetado no tema #${data.theme_id} (${data.theme_name}).`
       );
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Erro ao injetar código no tema.";
-      toast.error(message);
+      const message = err instanceof Error ? err.message : "Erro ao injetar código no tema.";
+      toast.error(message || "Erro ao injetar código no tema.");
     } finally {
       setInjecting(false);
     }
@@ -365,9 +364,8 @@ export default function IntegrationsPage() {
       setInjectedAt(null);
       toast.success("Código de checkout removido do tema.");
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Erro ao remover código do tema.";
-      toast.error(message);
+      const message = err instanceof Error ? err.message : "Erro ao remover código do tema.";
+      toast.error(message || "Erro ao remover código do tema.");
     } finally {
       setRemoving(false);
     }
