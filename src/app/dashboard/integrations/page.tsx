@@ -21,6 +21,8 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -76,7 +78,7 @@ function ShopifyTutorialDialog() {
             Como configurar a integração Shopify
           </DialogTitle>
           <DialogDescription>
-            Você cria o app Shopify apenas <strong>uma vez</strong>. Todas as lojas que quiserem integrar vão usar o mesmo app — cada uma recebe seu próprio token de acesso após o OAuth.
+            Você cria o <strong>seu próprio app</strong> na Shopify Partner e cola as credenciais aqui. Cada loja usa o app do seu dono — você controla seus dados na Shopify.
           </DialogDescription>
         </DialogHeader>
 
@@ -231,6 +233,12 @@ export default function IntegrationsPage() {
   const [shopifyDomain, setShopifyDomain] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  // Credenciais do app Shopify particular do lojista
+  const [credentialsConfigured, setCredentialsConfigured] = useState(false);
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [savingCreds, setSavingCreds] = useState(false);
+  const [showCredsForm, setShowCredsForm] = useState(false);
 
   const fetchShopifyStatus = async () => {
     if (!selectedStore) return;
@@ -238,9 +246,11 @@ export default function IntegrationsPage() {
       const data = await api.get<{
         connected: boolean;
         shopify_domain: string | null;
+        credentials_configured: boolean;
       }>(`/stores/${selectedStore.id}/shopify/status`);
       setShopifyConnected(data.connected);
       setShopifyDomain(data.shopify_domain);
+      setCredentialsConfigured(data.credentials_configured);
     } catch {
       /* ignore */
     } finally {
@@ -253,14 +263,41 @@ export default function IntegrationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore]);
 
+  const handleSaveCredentials = async () => {
+    if (!selectedStore) return;
+    if (!clientId.trim() || !clientSecret.trim()) {
+      toast.error("Preencha Client ID e Client Secret.");
+      return;
+    }
+    setSavingCreds(true);
+    try {
+      await api.put(`/stores/${selectedStore.id}/shopify/credentials`, {
+        shopify_client_id: clientId.trim(),
+        shopify_client_secret: clientSecret.trim(),
+      });
+      toast.success("Credenciais Shopify salvas!");
+      setCredentialsConfigured(true);
+      setShowCredsForm(false);
+      setClientId("");
+      setClientSecret("");
+    } catch {
+      toast.error("Erro ao salvar credenciais.");
+    } finally {
+      setSavingCreds(false);
+    }
+  };
+
   const handleConnectShopify = () => {
     if (!selectedStore) return;
+    if (!credentialsConfigured) {
+      toast.error("Salve as credenciais do seu app Shopify antes de conectar.");
+      setShowCredsForm(true);
+      return;
+    }
     // Redirect to the backend install route
     const redirectUrl = apiUrl(
       `/api/shopify/install?store_id=${selectedStore.id}`
     );
-    // The install endpoint needs a `shop` param; we'll prompt the user.
-    // For now, redirect with a shop prompt.
     const shop = prompt("Digite o nome da loja Shopify (ex: sua-loja.myshopify.com):"); // eslint-disable-line no-alert
     if (!shop) return;
     const shopDomain = shop.includes(".")
@@ -347,11 +384,98 @@ export default function IntegrationsPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <Button onClick={handleConnectShopify}>
-                  <Plug className="h-4 w-4" /> Conectar Shopify
-                </Button>
-                <ShopifyTutorialDialog />
+              <div className="space-y-4">
+                {/* Status credenciais + ações */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button onClick={handleConnectShopify}>
+                    <Plug className="h-4 w-4" /> Conectar Shopify
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCredsForm((v) => !v)}
+                  >
+                    {credentialsConfigured
+                      ? "Atualizar credenciais"
+                      : "Configurar credenciais"}
+                  </Button>
+                  <ShopifyTutorialDialog />
+                  {credentialsConfigured && (
+                    <Badge variant="success" className="gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Credenciais salvas
+                    </Badge>
+                  )}
+                </div>
+
+                {!credentialsConfigured && !showCredsForm && (
+                  <p className="text-sm text-muted-foreground">
+                    Antes de conectar, você precisa criar seu app na Shopify e
+                    salvar as credenciais aqui. Siga o tutorial acima.
+                  </p>
+                )}
+
+                {/* Formulário de credenciais */}
+                {showCredsForm || !credentialsConfigured ? (
+                  <div className="space-y-4 rounded-lg border p-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">
+                        Credenciais do seu app Shopify
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Crie seu app no Shopify Partner Dashboard e cole aqui o
+                        Client ID e Client Secret. Veja o tutorial para saber
+                        como.
+                      </p>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="shopify-client-id">Client ID</Label>
+                        <Input
+                          id="shopify-client-id"
+                          placeholder="ex: e765ce7c8b4e..."
+                          value={clientId}
+                          onChange={(e) => setClientId(e.target.value)}
+                          autoComplete="off"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="shopify-client-secret">
+                          Client Secret
+                        </Label>
+                        <Input
+                          id="shopify-client-secret"
+                          type="password"
+                          placeholder="shpat_..."
+                          value={clientSecret}
+                          onChange={(e) => setClientSecret(e.target.value)}
+                          autoComplete="off"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSaveCredentials}
+                        disabled={savingCreds}
+                      >
+                        {savingCreds ? "Salvando..." : "Salvar credenciais"}
+                      </Button>
+                      {showCredsForm && credentialsConfigured && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setShowCredsForm(false);
+                            setClientId("");
+                            setClientSecret("");
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </CardContent>
