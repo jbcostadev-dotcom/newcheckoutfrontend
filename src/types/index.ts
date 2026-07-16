@@ -100,6 +100,7 @@ export interface CheckoutSettings {
   enable_order_bump: boolean;
   dark_mode: boolean;
   button_text?: string | null;
+  banner_message?: string | null;
   // Optional fields that the form may manage locally before saving
 }
 
