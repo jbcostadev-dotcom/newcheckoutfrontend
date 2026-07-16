@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useStore } from "@/contexts/StoreContext";
 import { api } from "@/lib/api";
+import { useRouter } from "next/navigation";
 import {
   Settings as SettingsIcon,
   Save,
-  Unlink,
+  Trash2,
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,9 +21,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 export default function SettingsPage() {
-  const { selectedStore, refreshSelectedStore } = useStore();
+  const { selectedStore, refreshSelectedStore, deleteStore } = useStore();
+  const router = useRouter();
   const [saving, setSaving] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [name, setName] = useState(selectedStore?.name ?? "");
   const [subdomain, setSubdomain] = useState(
@@ -60,23 +62,24 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDisconnectShopify = async () => {
+  const handleDeleteStore = async () => {
     if (!selectedStore) return;
     const confirmed = window.confirm(
-      "Tem certeza que deseja desconectar a Shopify?\n\nIsso removerá o vínculo com a loja Shopify, liberará o domínio para outra conta e tentará remover o código injetado no tema."
+      `Tem certeza que deseja deletar a loja "${selectedStore.name}"?\n\nEsta ação não pode ser desfeita. Todos os produtos, pedidos, domínios e a integração Shopify serão removidos permanentemente.`
     );
     if (!confirmed) return;
 
-    setDisconnecting(true);
+    setDeleting(true);
     try {
-      await api.delete(`/stores/${selectedStore.id}/shopify`);
-      toast.success("Loja Shopify desconectada com sucesso.");
-      refreshSelectedStore();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao desconectar a Shopify.";
-      toast.error(message || "Erro ao desconectar a Shopify.");
+      const ok = await deleteStore(selectedStore.id);
+      if (ok) {
+        toast.success("Loja deletada com sucesso.");
+        router.push("/dashboard");
+      }
+    } catch {
+      toast.error("Erro ao deletar a loja.");
     } finally {
-      setDisconnecting(false);
+      setDeleting(false);
     }
   };
 
@@ -152,37 +155,32 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Shopify — desconectar */}
-        {selectedStore?.shopify_domain && (
-          <Card className="border-destructive/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base text-destructive">
-                <Unlink className="h-4 w-4" /> Zona de perigo
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>
-                  Você está conectado à loja Shopify{" "}
-                  <strong>{selectedStore.shopify_domain}</strong>. Desconectar
-                  liberará esse domínio para ser usado em outra conta e tentará
-                  remover o código injetado no tema.
-                </p>
-              </div>
-              <Button
-                variant="destructive"
-                onClick={handleDisconnectShopify}
-                disabled={disconnecting}
-              >
-                <Unlink className="h-4 w-4" />
-                {disconnecting
-                  ? "Desconectando..."
-                  : "Desconectar loja Shopify"}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        {/* Deletar loja */}
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base text-destructive">
+              <Trash2 className="h-4 w-4" /> Zona de perigo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>
+                A exclusão da loja <strong>{selectedStore?.name}</strong> é
+                permanente e não pode ser desfeita. Todos os produtos, pedidos,
+                domínios e integrações serão removidos.
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteStore}
+              disabled={deleting}
+            >
+              <Trash2 className="h-4 w-4" />
+              {deleting ? "Deletando..." : "Deletar loja"}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </>
   );

@@ -27,6 +27,7 @@ interface StoreContextType {
     type: StoreType | string;
     domain?: string;
   }) => Promise<boolean>;
+  deleteStore: (id: string) => Promise<boolean>;
   refreshSelectedStore: () => Promise<void>;
   loading: boolean;
 }
@@ -104,7 +105,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const message =
         err instanceof Error ? err.message : "Erro ao criar loja.";
       // surface friendly message to the user
-      // eslint-disable-next-line no-alert
       alert(message);
       return false;
     }
@@ -128,6 +128,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const deleteStore: StoreContextType["deleteStore"] = async (id) => {
+    try {
+      await api.delete(`/stores/${id}`);
+      setStores((prev) => prev.filter((s) => s.id !== id));
+      setSelectedStore((prev) => {
+        if (prev && prev.id === id) {
+          const remaining = stores.filter((s) => s.id !== id);
+          return remaining[0] ?? null;
+        }
+        return prev;
+      });
+      return true;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Erro ao deletar a loja.";
+      alert(message);
+      return false;
+    }
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -135,6 +155,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         selectedStore,
         setSelectedStoreById,
         addStore,
+        deleteStore,
         refreshSelectedStore,
         loading,
       }}

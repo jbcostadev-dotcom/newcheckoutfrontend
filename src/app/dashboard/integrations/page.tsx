@@ -17,7 +17,6 @@ import {
   Code2,
   Trash2,
   AlertTriangle,
-  Unlink,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -372,22 +371,7 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleDisconnectShopify = async () => {
-    if (!selectedStore) return;
-    const confirmed = window.confirm(
-      "Tem certeza que deseja desconectar a Shopify?\n\nIsso removerá o vínculo com a loja Shopify, liberará o domínio para outra conta e tentará remover o código injetado no tema."
-    );
-    if (!confirmed) return;
 
-    try {
-      await api.delete(`/stores/${selectedStore.id}/shopify`);
-      toast.success("Loja Shopify desconectada com sucesso.");
-      fetchShopifyStatus();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao desconectar a Shopify.";
-      toast.error(message || "Erro ao desconectar a Shopify.");
-    }
-  };
 
   if (loading) {
     return (
@@ -449,14 +433,6 @@ export default function IntegrationsPage() {
                     onClick={handleConnectShopify}
                   >
                     <ExternalLink className="h-4 w-4" /> Reconectar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                    onClick={handleDisconnectShopify}
-                  >
-                    <Unlink className="h-4 w-4" /> Desconectar
                   </Button>
                   <ShopifyTutorialDialog />
                 </div>
