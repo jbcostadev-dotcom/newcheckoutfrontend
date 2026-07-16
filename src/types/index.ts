@@ -42,8 +42,21 @@ export interface Product {
   created_at?: string;
 }
 
-export type OrderStatus = "pending" | "paid" | "failed" | "refunded";
-export type PaymentMethod = "pix" | "credit_card";
+export type OrderStatus =
+  | "pending"
+  | "processing"
+  | "waiting_payment"
+  | "in_analysis"
+  | "authorized"
+  | "paid"
+  | "failed"
+  | "refused"
+  | "canceled"
+  | "refunded"
+  | "in_protest"
+  | "chargedback";
+
+export type PaymentMethod = "pix" | "credit_card" | "boleto";
 
 export interface OrderItem {
   id: number;
@@ -68,13 +81,20 @@ export interface Order {
   gateway_transaction_id?: string | null;
   pix_qrcode?: string | null;
   pix_copia_cola?: string | null;
+  card_brand?: string | null;
+  card_last4?: string | null;
+  installments?: number | null;
+  boleto_url?: string | null;
+  boleto_barcode?: string | null;
+  boleto_digitable_line?: string | null;
+  gateway_expires_at?: string | null;
   created_at: string;
   updated_at?: string;
   items?: OrderItem[];
 }
 
 export type GatewayProvider =
-  | "suitpay"
+  | "unipay"
   | "mercadopago"
   | "stripe"
   | "pagseguro"
@@ -167,15 +187,23 @@ export interface Paginated<T> {
   total: number;
 }
 
-export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+export const ORDER_STATUS_LABEL: Record<string, string> = {
   pending: "Pendente",
+  processing: "Processando",
+  waiting_payment: "Aguardando Pagamento",
+  in_analysis: "Em Análise",
+  authorized: "Autorizado",
   paid: "Pago",
   failed: "Recusado",
+  refused: "Recusado",
+  canceled: "Cancelado",
   refunded: "Reembolsado",
+  in_protest: "Em Contestação",
+  chargedback: "Chargeback",
 };
 
 export const GATEWAY_LABELS: Record<string, string> = {
-  suitpay: "SuitPay",
+  unipay: "Unipay (FastSoft)",
   mercadopago: "Mercado Pago",
   stripe: "Stripe",
   pagseguro: "PagSeguro",

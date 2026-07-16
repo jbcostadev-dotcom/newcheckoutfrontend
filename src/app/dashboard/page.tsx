@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useStore } from "@/contexts/StoreContext";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import type { Metrics, Order, ORDER_STATUS_LABEL, OrderStatus } from "@/types";
+import type { Metrics, Order, OrderStatus } from "@/types";
+import { ORDER_STATUS_LABEL } from "@/types";
 import {
   DollarSign,
   ShoppingCart,
@@ -19,27 +20,28 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-function statusVariant(status: OrderStatus) {
+function statusVariant(status: OrderStatus | string) {
   switch (status) {
     case "paid":
+    case "authorized":
       return "success" as const;
     case "pending":
+    case "processing":
+    case "waiting_payment":
+    case "in_analysis":
       return "warning" as const;
     case "failed":
+    case "refused":
+    case "canceled":
       return "destructive" as const;
     case "refunded":
+    case "chargedback":
+    case "in_protest":
       return "secondary" as const;
     default:
       return "outline" as const;
   }
 }
-
-const STATUS_LABEL: Record<OrderStatus, string> = {
-  pending: "Pendente",
-  paid: "Pago",
-  failed: "Recusado",
-  refunded: "Reembolsado",
-};
 
 export default function DashboardOverview() {
   const { selectedStore } = useStore();
@@ -163,7 +165,7 @@ export default function DashboardOverview() {
                       {formatCurrency(Number(order.amount))}
                     </span>
                     <Badge variant={statusVariant(order.status)}>
-                      {STATUS_LABEL[order.status]}
+                      {ORDER_STATUS_LABEL[order.status] ?? order.status}
                     </Badge>
                   </div>
                 </div>

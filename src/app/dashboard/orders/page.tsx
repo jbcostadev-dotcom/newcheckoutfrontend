@@ -46,18 +46,39 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
-function statusVariant(status: OrderStatus) {
+function statusVariant(status: OrderStatus | string) {
   switch (status) {
     case "paid":
+    case "authorized":
       return "success" as const;
     case "pending":
+    case "processing":
+    case "waiting_payment":
+    case "in_analysis":
       return "warning" as const;
     case "failed":
+    case "refused":
+    case "canceled":
       return "destructive" as const;
     case "refunded":
+    case "chargedback":
+    case "in_protest":
       return "secondary" as const;
     default:
       return "outline" as const;
+  }
+}
+
+function paymentMethodLabel(method: string): string {
+  switch (method) {
+    case "pix":
+      return "PIX";
+    case "credit_card":
+      return "Cartão";
+    case "boleto":
+      return "Boleto";
+    default:
+      return method;
   }
 }
 
@@ -140,9 +161,15 @@ export default function OrdersPage() {
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="pending">Pendente</SelectItem>
+            <SelectItem value="processing">Processando</SelectItem>
+            <SelectItem value="waiting_payment">Aguardando Pagamento</SelectItem>
+            <SelectItem value="in_analysis">Em Análise</SelectItem>
+            <SelectItem value="authorized">Autorizado</SelectItem>
             <SelectItem value="paid">Pago</SelectItem>
             <SelectItem value="failed">Recusado</SelectItem>
             <SelectItem value="refunded">Reembolsado</SelectItem>
+            <SelectItem value="chargedback">Chargeback</SelectItem>
+            <SelectItem value="canceled">Cancelado</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -213,13 +240,13 @@ export default function OrdersPage() {
                     {formatCurrency(Number(order.amount))}
                   </TableCell>
                   <TableCell>
-                    <span className="text-xs capitalize">
-                      {order.payment_method === "pix" ? "PIX" : "Cartão"}
+                    <span className="text-xs">
+                      {paymentMethodLabel(order.payment_method)}
                     </span>
                   </TableCell>
                   <TableCell>
                     <Badge variant={statusVariant(order.status)}>
-                      {ORDER_STATUS_LABEL[order.status]}
+                      {ORDER_STATUS_LABEL[order.status] ?? order.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs">
@@ -282,7 +309,7 @@ export default function OrdersPage() {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Status</span>
                 <Badge variant={statusVariant(selectedOrder.status)}>
-                  {ORDER_STATUS_LABEL[selectedOrder.status]}
+                  {ORDER_STATUS_LABEL[selectedOrder.status] ?? selectedOrder.status}
                 </Badge>
               </div>
 
@@ -354,9 +381,7 @@ export default function OrdersPage() {
                     <p>
                       Método:{" "}
                       <span className="text-foreground">
-                        {selectedOrder.payment_method === "pix"
-                          ? "PIX"
-                          : "Cartão de Crédito"}
+                        {paymentMethodLabel(selectedOrder.payment_method)}
                       </span>
                     </p>
                     <p>
@@ -365,6 +390,36 @@ export default function OrdersPage() {
                         {formatCurrency(Number(selectedOrder.amount))}
                       </span>
                     </p>
+                    {selectedOrder.payment_method === "credit_card" && (
+                      <>
+                        <p>
+                          Bandeira:{" "}
+                          <span className="text-foreground">
+                            {selectedOrder.card_brand ?? "—"}
+                          </span>
+                        </p>
+                        <p>
+                          Final:{" "}
+                          <span className="text-foreground font-mono">
+                            {selectedOrder.card_last4 ?? "—"}
+                          </span>
+                        </p>
+                        <p>
+                          Parcelas:{" "}
+                          <span className="text-foreground">
+                            {selectedOrder.installments ?? 1}x
+                          </span>
+                        </p>
+                      </>
+                    )}
+                    {selectedOrder.gateway_transaction_id && (
+                      <p className="text-xs">
+                        ID gateway:{" "}
+                        <span className="font-mono">
+                          {selectedOrder.gateway_transaction_id}
+                        </span>
+                      </p>
+                    )}
                     <p className="text-xs">
                       {formatDate(selectedOrder.created_at)}
                     </p>
@@ -382,6 +437,30 @@ export default function OrdersPage() {
                       <div className="rounded-lg bg-muted p-3 text-xs font-mono break-all">
                         {selectedOrder.pix_copia_cola}
                       </div>
+                    </div>
+                  </>
+                )}
+
+              {/* Boleto */}
+              {selectedOrder.payment_method === "boleto" &&
+                selectedOrder.boleto_digitable_line && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="mb-2 font-semibold">Boleto</p>
+                      <div className="rounded-lg bg-muted p-3 text-xs font-mono break-all">
+                        {selectedOrder.boleto_digitable_line}
+                      </div>
+                      {selectedOrder.boleto_url && (
+                        <a
+                          href={selectedOrder.boleto_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-block text-xs text-primary underline"
+                        >
+                          Abrir boleto (HTML)
+                        </a>
+                      )}
                     </div>
                   </>
                 )}

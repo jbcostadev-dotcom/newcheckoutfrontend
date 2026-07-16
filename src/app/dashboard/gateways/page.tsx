@@ -41,7 +41,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 const PROVIDERS: { value: GatewayProvider; label: string }[] = [
-  { value: "suitpay", label: "SuitPay" },
+  { value: "unipay", label: "Unipay (FastSoft)" },
   { value: "mercadopago", label: "Mercado Pago" },
   { value: "stripe", label: "Stripe" },
   { value: "pagseguro", label: "PagSeguro" },
@@ -56,7 +56,7 @@ interface FormData {
 }
 
 const EMPTY_FORM: FormData = {
-  provider: "suitpay",
+  provider: "unipay",
   api_key: "",
   secret_key: "",
   is_active: true,
@@ -301,26 +301,32 @@ export default function GatewaysPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>API Key</Label>
+              <Label>Chave Pública (API Key)</Label>
               <Input
                 type="password"
-                placeholder="Sua chave de API"
+                placeholder="pk_live_..."
                 value={form.api_key}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, api_key: e.target.value }))
                 }
               />
+              <p className="text-xs text-muted-foreground">
+                Chave pública usada no SDK client-side (checkout).
+              </p>
             </div>
             <div className="space-y-2">
-              <Label>Secret Key</Label>
+              <Label>Chave Secreta (Secret Key)</Label>
               <Input
                 type="password"
-                placeholder="Sua chave secreta"
+                placeholder="sk_..."
                 value={form.secret_key}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, secret_key: e.target.value }))
                 }
               />
+              <p className="text-xs text-muted-foreground">
+                Chave secreta usada no servidor (Basic Auth). Nunca exponha no frontend.
+              </p>
             </div>
           </div>
           <DialogFooter>
