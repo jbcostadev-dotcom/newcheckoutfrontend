@@ -320,7 +320,7 @@ export default function CheckoutCustomizationPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-0px)] -m-6 lg:-m-8">
+    <div className="flex flex-col h-screen">
       {/* ─── Toolbar ─── */}
       <div className="flex items-center justify-between border-b bg-background px-4 py-2.5 shrink-0">
         <div className="flex items-center gap-3">
