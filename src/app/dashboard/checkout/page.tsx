@@ -679,7 +679,7 @@ export default function CheckoutCustomizationPage() {
               className="rounded-lg border bg-white shadow-sm transition-all"
               style={{
                 width: device === "mobile" ? 390 : "100%",
-                maxWidth: device === "mobile" ? 390 : 900,
+                maxWidth: device === "mobile" ? 390 : undefined,
                 height: 700,
               }}
               onLoad={() => {
