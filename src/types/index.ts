@@ -181,3 +181,32 @@ export const GATEWAY_LABELS: Record<string, string> = {
   pagseguro: "PagSeguro",
   asaas: "Asaas",
 };
+
+export type ShippingMethodIcon =
+  | "correios"
+  | "sedex"
+  | "jadlog"
+  | "loggi"
+  | "full"
+  | null;
+
+export interface ShippingMethod {
+  id: number;
+  store_id: number;
+  name: string;
+  price: number | null;
+  min_value_free_shipping: number | null;
+  min_delivery_days: number;
+  max_delivery_days: number;
+  icon: ShippingMethodIcon;
+  is_active: boolean;
+  created_at?: string;
+}
+
+export const SHIPPING_METHOD_ICON_LABEL: Record<NonNullable<ShippingMethodIcon>, string> = {
+  correios: "Correios",
+  sedex: "Sedex",
+  jadlog: "Jadlog",
+  loggi: "Loggi",
+  full: "Full",
+};
