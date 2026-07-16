@@ -17,6 +17,7 @@ import {
   Code2,
   Trash2,
   AlertTriangle,
+  Unlink,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -310,7 +311,7 @@ export default function IntegrationsPage() {
     const redirectUrl = apiUrl(
       `/api/shopify/install?store_id=${selectedStore.id}`
     );
-    const shop = prompt("Digite o nome da loja Shopify (ex: sua-loja.myshopify.com):"); // eslint-disable-line no-alert
+    const shop = prompt("Digite o nome da loja Shopify (ex: sua-loja.myshopify.com):");
     if (!shop) return;
     const shopDomain = shop.includes(".")
       ? shop
@@ -355,7 +356,7 @@ export default function IntegrationsPage() {
 
   const handleRemoveCheckout = async () => {
     if (!selectedStore) return;
-    if (!confirm("Remover o código de checkout do tema Shopify?")) return; // eslint-disable-line no-alert
+    if (!confirm("Remover o código de checkout do tema Shopify?")) return;
     setRemoving(true);
     try {
       await api.delete(`/stores/${selectedStore.id}/shopify/inject-checkout`);
@@ -368,6 +369,23 @@ export default function IntegrationsPage() {
       toast.error(message || "Erro ao remover código do tema.");
     } finally {
       setRemoving(false);
+    }
+  };
+
+  const handleDisconnectShopify = async () => {
+    if (!selectedStore) return;
+    const confirmed = window.confirm(
+      "Tem certeza que deseja desconectar a Shopify?\n\nIsso removerá o vínculo com a loja Shopify, liberará o domínio para outra conta e tentará remover o código injetado no tema."
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/stores/${selectedStore.id}/shopify`);
+      toast.success("Loja Shopify desconectada com sucesso.");
+      fetchShopifyStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao desconectar a Shopify.";
+      toast.error(message || "Erro ao desconectar a Shopify.");
     }
   };
 
@@ -431,6 +449,14 @@ export default function IntegrationsPage() {
                     onClick={handleConnectShopify}
                   >
                     <ExternalLink className="h-4 w-4" /> Reconectar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={handleDisconnectShopify}
+                  >
+                    <Unlink className="h-4 w-4" /> Desconectar
                   </Button>
                   <ShopifyTutorialDialog />
                 </div>
