@@ -124,6 +124,9 @@ export interface CheckoutSettings {
   banner_message?: string | null;
   header_store_name_visible?: boolean;
   header_secure_badge?: boolean;
+  header_logo_alignment?: string;
+  header_bg_color?: string;
+  header_icon_color?: string;
   announcement_bar_enabled?: boolean;
   announcement_bar_bg?: string;
   announcement_bar_text_color?: string;

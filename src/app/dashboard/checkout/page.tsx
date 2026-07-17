@@ -42,6 +42,9 @@ const DEFAULTS: CheckoutSettings = {
   banner_message: "Digite aqui a mensagem",
   header_store_name_visible: true,
   header_secure_badge: true,
+  header_logo_alignment: "left",
+  header_bg_color: "#ffffff",
+  header_icon_color: "#666666",
   announcement_bar_enabled: true,
   announcement_bar_bg: "#333333",
   announcement_bar_text_color: "#d4a843",
@@ -226,6 +229,9 @@ export default function CheckoutCustomizationPage() {
           banner_message: settings.banner_message,
           header_store_name_visible: settings.header_store_name_visible,
           header_secure_badge: settings.header_secure_badge,
+          header_logo_alignment: settings.header_logo_alignment,
+          header_bg_color: settings.header_bg_color,
+          header_icon_color: settings.header_icon_color,
           announcement_bar_enabled: settings.announcement_bar_enabled,
           announcement_bar_bg: settings.announcement_bar_bg,
           announcement_bar_text_color: settings.announcement_bar_text_color,
@@ -272,6 +278,9 @@ export default function CheckoutCustomizationPage() {
         banner_message: settings.banner_message,
         header_store_name_visible: settings.header_store_name_visible,
         header_secure_badge: settings.header_secure_badge,
+        header_logo_alignment: settings.header_logo_alignment,
+        header_bg_color: settings.header_bg_color,
+        header_icon_color: settings.header_icon_color,
         announcement_bar_enabled: settings.announcement_bar_enabled,
         announcement_bar_bg: settings.announcement_bar_bg,
         announcement_bar_text_color: settings.announcement_bar_text_color,
@@ -382,6 +391,41 @@ export default function CheckoutCustomizationPage() {
               checked={settings.header_secure_badge ?? true}
               onCheckedChange={(v) => update("header_secure_badge", v)}
             />
+            <FieldRow label="URL da Logo">
+              <Input
+                value={settings.logo_url ?? ""}
+                onChange={(e) => update("logo_url", e.target.value)}
+                placeholder="https://exemplo.com/logo.png"
+                className="h-8 text-xs"
+              />
+            </FieldRow>
+            <FieldRow label="Alinhamento da Logo">
+              <Select
+                value={settings.header_logo_alignment ?? "left"}
+                onValueChange={(v) => update("header_logo_alignment", v)}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">Esquerda</SelectItem>
+                  <SelectItem value="center">Centro</SelectItem>
+                  <SelectItem value="right">Direita</SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldRow>
+            <div className="grid grid-cols-2 gap-2 mt-2 pb-2">
+              <ColorField
+                label="Fundo cabeçalho"
+                value={settings.header_bg_color ?? (settings.dark_mode ? "#1a1a1a" : "#ffffff")}
+                onChange={(v) => update("header_bg_color", v)}
+              />
+              <ColorField
+                label="Cor dos ícones"
+                value={settings.header_icon_color ?? "#666666"}
+                onChange={(v) => update("header_icon_color", v)}
+              />
+            </div>
           </AccordionSection>
 
           {/* Barra de avisos */}
