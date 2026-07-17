@@ -147,6 +147,12 @@ export interface CheckoutSettings {
   font_family?: string;
   font_size_base?: string;
   social_proofs_enabled?: boolean;
+  pix_enabled?: boolean;
+  pix_gateway_id?: number | null;
+  card_enabled?: boolean;
+  card_gateway_id?: number | null;
+  boleto_enabled?: boolean;
+  boleto_gateway_id?: number | null;
 }
 
 export interface SocialProof {
