@@ -146,6 +146,20 @@ export interface CheckoutSettings {
   footer_cnpj?: string | null;
   font_family?: string;
   font_size_base?: string;
+  social_proofs_enabled?: boolean;
+}
+
+export interface SocialProof {
+  id: number;
+  store_id: number;
+  name: string;
+  testimonial: string;
+  photo_url?: string | null;
+  stars: number;
+  is_active: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Metrics {

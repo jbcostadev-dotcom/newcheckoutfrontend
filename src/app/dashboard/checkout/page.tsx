@@ -4,13 +4,20 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/contexts/StoreContext";
 import { api } from "@/lib/api";
-import type { CheckoutSettings } from "@/types";
+import type { CheckoutSettings, SocialProof } from "@/types";
 import {
   ArrowLeft,
   ChevronDown,
   Monitor,
   Smartphone,
   Save,
+  Plus,
+  Star,
+  Trash2,
+  Pencil,
+  Upload,
+  X,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,6 +35,14 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccordionSection } from "@/components/ui/accordion-section";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const DEFAULTS: CheckoutSettings = {
   store_id: 0,
@@ -64,6 +79,23 @@ const DEFAULTS: CheckoutSettings = {
   footer_cnpj: null,
   font_family: "Inter",
   font_size_base: "16px",
+  social_proofs_enabled: true,
+};
+
+interface SocialProofForm {
+  name: string;
+  testimonial: string;
+  stars: number;
+  photo: File | null;
+  photoPreview: string | null;
+}
+
+const EMPTY_FORM: SocialProofForm = {
+  name: "",
+  testimonial: "",
+  stars: 5,
+  photo: null,
+  photoPreview: null,
 };
 
 type DeviceMode = "desktop" | "mobile";
@@ -176,6 +208,14 @@ export default function CheckoutCustomizationPage() {
   const [iframeKey, setIframeKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
+  // Social Proofs state
+  const [socialProofs, setSocialProofs] = useState<SocialProof[]>([]);
+  const [spModalOpen, setSpModalOpen] = useState(false);
+  const [spForm, setSpForm] = useState<SocialProofForm>(EMPTY_FORM);
+  const [spEditingId, setSpEditingId] = useState<number | null>(null);
+  const [spSaving, setSpSaving] = useState(false);
+  const spFileInputRef = useRef<HTMLInputElement | null>(null);
+
   const fetchSettings = useCallback(async () => {
     if (!selectedStore) return;
     setLoading(true);
@@ -191,9 +231,100 @@ export default function CheckoutCustomizationPage() {
     }
   }, [selectedStore]);
 
+  const fetchSocialProofs = useCallback(async () => {
+    if (!selectedStore) return;
+    try {
+      const data = await api.get<SocialProof[]>(
+        `/stores/${selectedStore.id}/social-proofs`
+      );
+      setSocialProofs(data);
+    } catch {
+      // silent — non-critical
+    }
+  }, [selectedStore]);
+
   useEffect(() => {
     fetchSettings();
-  }, [fetchSettings]);
+    fetchSocialProofs();
+  }, [fetchSettings, fetchSocialProofs]);
+
+  const openSpModal = (proof?: SocialProof) => {
+    if (proof) {
+      setSpEditingId(proof.id);
+      setSpForm({
+        name: proof.name,
+        testimonial: proof.testimonial,
+        stars: proof.stars,
+        photo: null,
+        photoPreview: proof.photo_url || null,
+      });
+    } else {
+      setSpEditingId(null);
+      setSpForm(EMPTY_FORM);
+    }
+    setSpModalOpen(true);
+  };
+
+  const handleSpPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSpForm((prev) => ({
+      ...prev,
+      photo: file,
+      photoPreview: URL.createObjectURL(file),
+    }));
+  };
+
+  const handleSpSave = async () => {
+    if (!selectedStore) return;
+    if (!spForm.name.trim() || !spForm.testimonial.trim()) {
+      toast.error("Preencha o nome e o depoimento.");
+      return;
+    }
+    setSpSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append("name", spForm.name);
+      formData.append("testimonial", spForm.testimonial);
+      formData.append("stars", String(spForm.stars));
+      if (spForm.photo) {
+        formData.append("photo", spForm.photo);
+      }
+
+      if (spEditingId) {
+        await api.post(
+          `/stores/${selectedStore.id}/social-proofs/${spEditingId}`,
+          formData
+        );
+        toast.success("Prova social atualizada!");
+      } else {
+        await api.post(
+          `/stores/${selectedStore.id}/social-proofs`,
+          formData
+        );
+        toast.success("Prova social adicionada!");
+      }
+      setSpModalOpen(false);
+      setSpForm(EMPTY_FORM);
+      setSpEditingId(null);
+      fetchSocialProofs();
+    } catch {
+      toast.error("Erro ao salvar prova social.");
+    } finally {
+      setSpSaving(false);
+    }
+  };
+
+  const handleSpDelete = async (id: number) => {
+    if (!selectedStore) return;
+    try {
+      await api.delete(`/stores/${selectedStore.id}/social-proofs/${id}`);
+      toast.success("Prova social removida!");
+      fetchSocialProofs();
+    } catch {
+      toast.error("Erro ao remover prova social.");
+    }
+  };
 
   const previewUrl = (() => {
     if (!selectedStore) return null;
@@ -251,6 +382,7 @@ export default function CheckoutCustomizationPage() {
           footer_cnpj: settings.footer_cnpj,
           font_family: settings.font_family,
           font_size_base: settings.font_size_base,
+          social_proofs_enabled: settings.social_proofs_enabled,
         },
       },
       "*"
@@ -300,6 +432,7 @@ export default function CheckoutCustomizationPage() {
         footer_cnpj: settings.footer_cnpj,
         font_family: settings.font_family,
         font_size_base: settings.font_size_base,
+        social_proofs_enabled: settings.social_proofs_enabled,
       });
       toast.success("Configurações salvas!");
     } catch {
@@ -643,6 +776,95 @@ export default function CheckoutCustomizationPage() {
             </div>
           </AccordionSection>
 
+          {/* Provas Sociais */}
+          <AccordionSection title="Provas Sociais">
+            <ToggleRow
+              label="Ativar provas sociais"
+              description="Exibir depoimentos no checkout"
+              checked={settings.social_proofs_enabled ?? true}
+              onCheckedChange={(v) => update("social_proofs_enabled", v)}
+            />
+
+            {(settings.social_proofs_enabled ?? true) && (
+              <>
+                {/* Lista de provas sociais existentes */}
+                {socialProofs.length > 0 && (
+                  <div className="space-y-2">
+                    {socialProofs.map((proof) => (
+                      <div
+                        key={proof.id}
+                        className="flex items-center gap-2 rounded-lg border border-border p-2 bg-accent/30"
+                      >
+                        {proof.photo_url ? (
+                          <img
+                            src={proof.photo_url}
+                            alt={proof.name}
+                            className="h-9 w-9 rounded-full object-cover shrink-0"
+                          />
+                        ) : (
+                          <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">
+                            {proof.name}
+                          </p>
+                          <div className="flex items-center gap-0.5">
+                            {Array.from({ length: 5 }, (_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-3 w-3 ${
+                                  i < proof.stars
+                                    ? "fill-amber-400 text-amber-400"
+                                    : "text-muted-foreground/30"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => openSpModal(proof)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                            onClick={() => handleSpDelete(proof.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {socialProofs.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground text-center py-2">
+                    Nenhuma prova social adicionada ainda.
+                  </p>
+                )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-1.5 text-xs"
+                  onClick={() => openSpModal()}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Adicionar prova social
+                </Button>
+              </>
+            )}
+          </AccordionSection>
+
           {/* Rodapé */}
           <AccordionSection title="Rodapé">
             <FieldRow label="Texto do rodapé">
@@ -733,6 +955,150 @@ export default function CheckoutCustomizationPage() {
           )}
         </div>
       </div>
+
+      {/* ─── Social Proof Modal ─── */}
+      <Dialog open={spModalOpen} onOpenChange={setSpModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {spEditingId ? "Editar prova social" : "Adicionar prova social"}
+            </DialogTitle>
+            <DialogDescription>
+              {spEditingId
+                ? "Atualize os dados do depoimento."
+                : "Adicione um novo depoimento de cliente."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Photo upload */}
+            <div className="flex flex-col items-center gap-3">
+              <div
+                className="relative h-20 w-20 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden group"
+                onClick={() => spFileInputRef.current?.click()}
+              >
+                {spForm.photoPreview ? (
+                  <>
+                    <img
+                      src={spForm.photoPreview}
+                      alt="Preview"
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Upload className="h-5 w-5 text-white" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center gap-1">
+                    <Upload className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground">Foto</span>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={spFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleSpPhotoChange}
+              />
+              {spForm.photoPreview && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-destructive hover:text-destructive gap-1 h-6"
+                  onClick={() =>
+                    setSpForm((prev) => ({
+                      ...prev,
+                      photo: null,
+                      photoPreview: null,
+                    }))
+                  }
+                >
+                  <X className="h-3 w-3" />
+                  Remover foto
+                </Button>
+              )}
+            </div>
+
+            {/* Name */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nome</Label>
+              <Input
+                value={spForm.name}
+                onChange={(e) =>
+                  setSpForm((prev) => ({ ...prev, name: e.target.value }))
+                }
+                placeholder="Nome do cliente"
+                className="h-9 text-sm"
+              />
+            </div>
+
+            {/* Testimonial */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Depoimento</Label>
+              <Textarea
+                value={spForm.testimonial}
+                onChange={(e) =>
+                  setSpForm((prev) => ({
+                    ...prev,
+                    testimonial: e.target.value,
+                  }))
+                }
+                placeholder="O que o cliente disse..."
+                className="min-h-[80px] text-sm"
+              />
+            </div>
+
+            {/* Star rating */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Avaliação</Label>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: 5 }, (_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() =>
+                      setSpForm((prev) => ({ ...prev, stars: i + 1 }))
+                    }
+                    className="p-0.5 transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={`h-6 w-6 transition-colors ${
+                        i < spForm.stars
+                          ? "fill-amber-400 text-amber-400"
+                          : "text-muted-foreground/30 hover:text-amber-300"
+                      }`}
+                    />
+                  </button>
+                ))}
+                <span className="text-xs text-muted-foreground ml-2">
+                  {spForm.stars}/5
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSpModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSpSave}
+              disabled={spSaving}
+              className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              <Save className="h-4 w-4" />
+              {spSaving ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
