@@ -1193,12 +1193,16 @@ export default function CheckoutCustomizationPage() {
                 onChange={(e) =>
                   setSpForm((prev) => ({
                     ...prev,
-                    testimonial: e.target.value,
+                    testimonial: e.target.value.slice(0, 120),
                   }))
                 }
+                maxLength={120}
                 placeholder="O que o cliente disse..."
                 className="min-h-[80px] text-sm"
               />
+              <div className="text-[10px] text-right text-muted-foreground">
+                {spForm.testimonial.length}/120
+              </div>
             </div>
 
             {/* Star rating */}
