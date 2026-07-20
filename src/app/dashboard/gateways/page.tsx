@@ -12,6 +12,7 @@ import {
   Pencil,
   Trash2,
   Zap,
+  Percent,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -53,6 +54,11 @@ interface FormData {
   api_key: string;
   secret_key: string;
   is_active: boolean;
+  installment_type: "default" | "custom";
+  default_installment_rate: number;
+  installment_rates: (number | null)[];
+  pre_selected_installment: number;
+  installment_limit: number;
 }
 
 const EMPTY_FORM: FormData = {
@@ -60,7 +66,23 @@ const EMPTY_FORM: FormData = {
   api_key: "",
   secret_key: "",
   is_active: true,
+  installment_type: "default",
+  default_installment_rate: 3.14,
+  installment_rates: Array(12).fill(null),
+  pre_selected_installment: 1,
+  installment_limit: 12,
 };
+
+function parseRate(v: string): number | null {
+  if (v.trim() === "" || v.trim() === "0") return 0;
+  const n = parseFloat(v.replace(",", "."));
+  return isNaN(n) ? null : n;
+}
+
+function formatRate(v: number | null): string {
+  if (v === null || v === undefined) return "";
+  return v.toString().replace(".", ",");
+}
 
 export default function GatewaysPage() {
   const { selectedStore } = useStore();
@@ -99,12 +121,19 @@ export default function GatewaysPage() {
   };
 
   const openEdit = (gw: Gateway) => {
+    const rates = gw.installment_rates ?? Array(12).fill(null);
+    const padded = [...rates, ...Array(Math.max(0, 12 - rates.length)).fill(null)];
     setEditingId(gw.id);
     setForm({
       provider: gw.provider as GatewayProvider,
       api_key: gw.api_key ?? "",
       secret_key: gw.secret_key ?? "",
       is_active: gw.is_active,
+      installment_type: gw.installment_type ?? "default",
+      default_installment_rate: gw.default_installment_rate ?? 3.14,
+      installment_rates: padded.slice(0, 12),
+      pre_selected_installment: gw.pre_selected_installment ?? 1,
+      installment_limit: gw.installment_limit ?? 12,
     });
     setIsOpen(true);
   };
@@ -113,14 +142,25 @@ export default function GatewaysPage() {
     if (!selectedStore) return;
     setSaving(true);
     try {
+      const payload = {
+        provider: form.provider,
+        api_key: form.api_key,
+        secret_key: form.secret_key,
+        is_active: form.is_active,
+        installment_type: form.installment_type,
+        default_installment_rate: form.default_installment_rate,
+        installment_rates: form.installment_type === "custom" ? form.installment_rates : Array(12).fill(form.default_installment_rate),
+        pre_selected_installment: form.pre_selected_installment,
+        installment_limit: form.installment_limit,
+      };
       if (editingId) {
         await api.put(
           `/stores/${selectedStore.id}/gateways/${editingId}`,
-          form
+          payload
         );
         toast.success("Gateway atualizado!");
       } else {
-        await api.post(`/stores/${selectedStore.id}/gateways`, form);
+        await api.post(`/stores/${selectedStore.id}/gateways`, payload);
         toast.success("Gateway adicionado!");
       }
       setIsOpen(false);
@@ -174,6 +214,14 @@ export default function GatewaysPage() {
     } catch {
       toast.error("Erro ao testar gateway.");
     }
+  };
+
+  const handleRateChange = (idx: number, value: string) => {
+    setForm((f) => {
+      const rates = [...f.installment_rates];
+      rates[idx] = parseRate(value);
+      return { ...f, installment_rates: rates };
+    });
   };
 
   return (
@@ -270,7 +318,7 @@ export default function GatewaysPage() {
 
       {/* Dialog Criar/Editar Gateway */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingId ? "Editar Gateway" : "Adicionar Gateway"}
@@ -279,7 +327,7 @@ export default function GatewaysPage() {
               Configure as credenciais do provedor de pagamento.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="space-y-2">
               <Label>Provedor</Label>
               <Select
@@ -300,6 +348,7 @@ export default function GatewaysPage() {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label>Chave Pública (API Key)</Label>
               <Input
@@ -314,6 +363,7 @@ export default function GatewaysPage() {
                 Chave pública usada no SDK client-side (checkout).
               </p>
             </div>
+
             <div className="space-y-2">
               <Label>Chave Secreta (Secret Key)</Label>
               <Input
@@ -328,7 +378,142 @@ export default function GatewaysPage() {
                 Chave secreta usada no servidor (Basic Auth). Nunca exponha no frontend.
               </p>
             </div>
+
+            {/* Separator */}
+            <div className="border-t border-border" />
+
+            {/* Installment Configuration */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Percent className="h-5 w-5 text-primary" />
+                <h3 className="text-sm font-semibold">Configuração de Parcelamento</h3>
+              </div>
+
+              {/* Toggle custom rates */}
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Utilizar juros customizados por parcela</Label>
+                <Switch
+                  checked={form.installment_type === "custom"}
+                  onCheckedChange={(v) =>
+                    setForm((f) => ({
+                      ...f,
+                      installment_type: v ? "custom" : "default",
+                    }))
+                  }
+                />
+              </div>
+
+              {form.installment_type === "default" && (
+                <div className="space-y-2">
+                  <Label>Taxa de parcelamento</Label>
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="3,14"
+                      value={formatRate(form.default_installment_rate)}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          default_installment_rate: parseFloat(e.target.value.replace(",", ".")) || 0,
+                        }))
+                      }
+                      className="pr-10"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                      %
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Taxa de juros compostos aplicada a todas as parcelas (1x a 12x). Padrão: 3,14%.
+                  </p>
+                </div>
+              )}
+
+              {form.installment_type === "custom" && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Caso queira a parcela sem juros, adicione valor 0 (Zero).
+                  </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {form.installment_rates.map((rate, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <Label className="text-xs">Em {idx + 1}x</Label>
+                        <div className="relative">
+                          <Input
+                            type="text"
+                            placeholder="0"
+                            value={formatRate(rate)}
+                            onChange={(e) => handleRateChange(idx, e.target.value)}
+                            className="pr-8 text-sm h-8"
+                          />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pre-selected installment */}
+              <div className="space-y-2">
+                <Label>Parcela pré-selecionada</Label>
+                <Select
+                  value={String(form.pre_selected_installment)}
+                  onValueChange={(v) =>
+                    setForm((f) => ({
+                      ...f,
+                      pre_selected_installment: parseInt(v),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}x
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Parcela que aparecerá selecionada por padrão no checkout.
+                </p>
+              </div>
+
+              {/* Installment limit */}
+              <div className="space-y-2">
+                <Label>Limite de parcelas</Label>
+                <Select
+                  value={String(form.installment_limit)}
+                  onValueChange={(v) =>
+                    setForm((f) => ({
+                      ...f,
+                      installment_limit: parseInt(v),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}x
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Número máximo de parcelas disponíveis no checkout.
+                </p>
+              </div>
+            </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar

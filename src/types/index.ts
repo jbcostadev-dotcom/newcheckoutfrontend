@@ -115,6 +115,11 @@ export interface Gateway {
   secret_key?: string | null;
   is_active: boolean;
   settings?: Record<string, unknown> | null;
+  installment_type?: "default" | "custom";
+  default_installment_rate?: number;
+  installment_rates?: (number | null)[] | null;
+  pre_selected_installment?: number;
+  installment_limit?: number;
   created_at?: string;
 }
 
