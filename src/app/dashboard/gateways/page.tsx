@@ -59,6 +59,7 @@ interface FormData {
   installment_rates: (number | null)[];
   pre_selected_installment: number;
   installment_limit: number;
+  interest_free_installments: number;
 }
 
 const EMPTY_FORM: FormData = {
@@ -71,6 +72,7 @@ const EMPTY_FORM: FormData = {
   installment_rates: Array(12).fill(null),
   pre_selected_installment: 1,
   installment_limit: 12,
+  interest_free_installments: 1,
 };
 
 function parseRate(v: string): number | null {
@@ -134,6 +136,7 @@ export default function GatewaysPage() {
       installment_rates: padded.slice(0, 12),
       pre_selected_installment: gw.pre_selected_installment ?? 1,
       installment_limit: gw.installment_limit ?? 12,
+      interest_free_installments: gw.interest_free_installments ?? 1,
     });
     setIsOpen(true);
   };
@@ -152,6 +155,7 @@ export default function GatewaysPage() {
         installment_rates: form.installment_type === "custom" ? form.installment_rates : Array(12).fill(form.default_installment_rate),
         pre_selected_installment: form.pre_selected_installment,
         installment_limit: form.installment_limit,
+        interest_free_installments: form.interest_free_installments,
       };
       if (editingId) {
         await api.put(
@@ -509,6 +513,34 @@ export default function GatewaysPage() {
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   Número máximo de parcelas disponíveis no checkout.
+                </p>
+              </div>
+
+              {/* Interest-free installments */}
+              <div className="space-y-2">
+                <Label>Parcelas sem juros</Label>
+                <Select
+                  value={String(form.interest_free_installments)}
+                  onValueChange={(v) =>
+                    setForm((f) => ({
+                      ...f,
+                      interest_free_installments: parseInt(v),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        Até {n}x
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Parcelas de 1x até essa quantidade não terão juros.
                 </p>
               </div>
             </div>

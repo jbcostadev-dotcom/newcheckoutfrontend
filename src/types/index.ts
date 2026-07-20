@@ -120,6 +120,7 @@ export interface Gateway {
   installment_rates?: (number | null)[] | null;
   pre_selected_installment?: number;
   installment_limit?: number;
+  interest_free_installments?: number;
   created_at?: string;
 }
 
