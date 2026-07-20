@@ -40,7 +40,7 @@ import type { ShopifyInjectStatus } from "@/types";
 
 const CALLBACK_URL = "https://api.bersenker.shop/api/shopify/callback";
 const APP_URL = "https://api.bersenker.shop";
-const SCOPES_LABEL = "read_products,read_orders";
+const SCOPES_LABEL = "read_products,read_orders,write_themes";
 
 function ShopifyTutorialDialog() {
   const [copied, setCopied] = useState<string | null>(null);
@@ -82,7 +82,7 @@ function ShopifyTutorialDialog() {
             Como configurar a integração Shopify
           </DialogTitle>
           <DialogDescription>
-            Você cria o <strong>seu próprio app</strong> na Shopify Partner e cola as credenciais aqui. Cada loja usa o app do seu dono — você controla seus dados na Shopify.
+            Cadastre seu <strong>próprio app Shopify</strong> e cole as credenciais aqui no painel. Cada loja usa o app do seu dono — você controla seus dados na Shopify.
           </DialogDescription>
         </DialogHeader>
 
@@ -91,14 +91,14 @@ function ShopifyTutorialDialog() {
           <div className="space-y-2">
             <h3 className="flex items-center gap-2 font-semibold">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#95bf47] text-xs font-bold text-white">1</span>
-              Crie uma conta Shopify Partner (gratuita)
+              Acesse o Shopify Partner Dashboard
             </h3>
             <p className="text-muted-foreground pl-8">
-              Acesse{" "}
+              Entre em{" "}
               <a href="https://partners.shopify.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">
                 partners.shopify.com
               </a>{" "}
-              e crie sua conta de Partner (é grátis e não exige loja ativa).
+              e acesse a aba <strong>Apps</strong>. (É grátis e não exige loja ativa.)
             </p>
           </div>
 
@@ -106,12 +106,10 @@ function ShopifyTutorialDialog() {
           <div className="space-y-2">
             <h3 className="flex items-center gap-2 font-semibold">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#95bf47] text-xs font-bold text-white">2</span>
-              Crie um novo app
+              Cadastre o app para sua loja
             </h3>
             <p className="text-muted-foreground pl-8">
-              No painel Partner, vá em <strong>Apps → Create app</strong>. Escolha{" "}
-              <strong>Custom app</strong> (para uso próprio / multi-loja) ou{" "}
-              <strong>Public app</strong> (para distribuir na Shopify App Store).
+              Clique em <strong>Add app</strong> e escolha <strong>Custom app</strong>. Dê um nome (ex: <em>Bersenker Checkout</em>) e selecione a loja onde ele será instalado.
             </p>
           </div>
 
@@ -119,10 +117,10 @@ function ShopifyTutorialDialog() {
           <div className="space-y-2">
             <h3 className="flex items-center gap-2 font-semibold">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#95bf47] text-xs font-bold text-white">3</span>
-              Configure URLs e redirecionamento
+              Configure as URLs do app
             </h3>
             <div className="pl-8 space-y-2">
-              <p className="text-muted-foreground">Em <strong>App setup → URLs</strong>, preencha:</p>
+              <p className="text-muted-foreground">Em <strong>Configuration → URLs</strong>, preencha:</p>
               <div className="rounded-md bg-muted/60 p-3 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="font-mono">
@@ -139,7 +137,7 @@ function ShopifyTutorialDialog() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                ⚠️ A URL de callback precisa estar exatamente igual à acima, senão a Shopify rejeita o OAuth.
+                ⚠️ A URL de redirecionamento precisa estar exatamente igual à acima, senão a Shopify rejeita o OAuth.
               </p>
             </div>
           </div>
@@ -151,7 +149,7 @@ function ShopifyTutorialDialog() {
               Defina os escopos (permissions)
             </h3>
             <div className="pl-8 space-y-1">
-              <p className="text-muted-foreground">Em <strong>App setup → Access scopes</strong>, adicione:</p>
+              <p className="text-muted-foreground">Em <strong>Configuration → API access → Access scopes</strong>, adicione:</p>
               <div className="rounded-md bg-muted/60 p-3 text-xs font-mono">
                 <div className="flex items-center justify-between">
                   <span>{SCOPES_LABEL}</span>
@@ -160,7 +158,8 @@ function ShopifyTutorialDialog() {
               </div>
               <ul className="pt-2 space-y-1 text-muted-foreground">
                 <li>• <code className="font-mono">read_products</code> — sincronizar produtos</li>
-                <li>• <code className="font-mono">read_orders</code> — ler pedidos (futuro)</li>
+                <li>• <code className="font-mono">read_orders</code> — ler pedidos</li>
+                <li>• <code className="font-mono">write_themes</code> — injetar o snippet de checkout no tema</li>
               </ul>
             </div>
           </div>
@@ -172,10 +171,10 @@ function ShopifyTutorialDialog() {
               Copie Client ID e Client Secret
             </h3>
             <div className="pl-8 space-y-1">
-              <p className="text-muted-foreground">Em <strong>App setup → API credentials</strong>, copie:</p>
+              <p className="text-muted-foreground">Em <strong>Configuration → API credentials</strong>, copie:</p>
               <ul className="space-y-1 text-muted-foreground">
-                <li>• <strong>Client ID</strong> (API key) → vira <code className="font-mono">SHOPIFY_CLIENT_ID</code></li>
-                <li>• <strong>Client Secret</strong> (API secret key) → vira <code className="font-mono">SHOPIFY_CLIENT_SECRET</code></li>
+                <li>• <strong>Client ID</strong> (API key)</li>
+                <li>• <strong>Client Secret</strong> (API secret key) — clique em <em>Reveal</em> para ver.</li>
               </ul>
             </div>
           </div>
@@ -184,21 +183,20 @@ function ShopifyTutorialDialog() {
           <div className="space-y-2">
             <h3 className="flex items-center gap-2 font-semibold">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#95bf47] text-xs font-bold text-white">6</span>
-              Configure o .env no servidor e limpe o cache
+              Cole as credenciais aqui no painel Bersenker
             </h3>
-            <div className="pl-8 space-y-2">
-              <p className="text-muted-foreground">Edite <code className="font-mono">/www/wwwroot/api.bersenker.shop/.env</code>:</p>
-              <div className="rounded-md bg-muted/60 p-3 text-xs font-mono">
-                <div>SHOPIFY_CLIENT_ID=seu_client_id</div>
-                <div>SHOPIFY_CLIENT_SECRET=seu_client_secret</div>
-                <div>APP_URL=https://api.bersenker.shop</div>
-              </div>
-              <p className="text-muted-foreground">Depois limpe o cache de config:</p>
-              <div className="rounded-md bg-muted/60 p-3 text-xs font-mono">
-                php artisan config:clear
-                <br />
-                php artisan config:cache
-              </div>
+            <div className="pl-8 space-y-1">
+              <p className="text-muted-foreground">
+                Abra <strong>Integrações → Shopify → Configurar credenciais</strong> e preencha:
+              </p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li>• <strong>Client ID</strong> copiado no passo anterior</li>
+                <li>• <strong>Client Secret</strong> copiado no passo anterior</li>
+                <li>• <strong>Domínio da loja Shopify</strong> (ex: <code className="font-mono">sua-loja.myshopify.com</code>)</li>
+              </ul>
+              <p className="text-muted-foreground pt-1">
+                Clique em <strong>Salvar credenciais</strong>.
+              </p>
             </div>
           </div>
 
@@ -206,10 +204,10 @@ function ShopifyTutorialDialog() {
           <div className="space-y-2">
             <h3 className="flex items-center gap-2 font-semibold">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#95bf47] text-xs font-bold text-white">7</span>
-              Conecte cada loja aqui no painel
+              Conecte a Shopify
             </h3>
             <p className="text-muted-foreground pl-8">
-              Com o app configurado, cada loja só precisa clicar em <strong>"Conectar Shopify"</strong> e digitar o domínio <code className="font-mono">sua-loja.myshopify.com</code>. A loja é redirecionada para a Shopify, autoriza e volta com o token salvo automaticamente.
+              Clique em <strong>Conectar Shopify</strong>. Você será redirecionado direto para a Shopify, autorize o acesso e voltará automaticamente para o painel com a integração ativa. Os produtos começam a sincronizar em seguida.
             </p>
           </div>
 
@@ -218,10 +216,9 @@ function ShopifyTutorialDialog() {
           <div className="rounded-lg border border-[#95bf47]/30 bg-[#95bf47]/5 p-4 text-xs text-muted-foreground">
             <p className="mb-1 font-semibold text-foreground">💡 Importante:</p>
             <ul className="space-y-1">
-              <li>• Você cria o app só <strong>uma vez</strong> — o mesmo Client ID/Secret serve para todas as lojas.</li>
-              <li>• Cada loja recebe seu próprio <strong>access token</strong> após autorizar via OAuth.</li>
-              <li>• A URL de callback deve estar na lista de URLs permitidas do app na Shopify.</li>
-              <li>• Para rodar localmente, crie uma <strong>Development store</strong> no Partner Dashboard.</li>
+              <li>• Cada loja pode usar seu <strong>próprio app Shopify</strong> — as credenciais ficam salvas aqui no painel, sem editar arquivos no servidor.</li>
+              <li>• A loja recebe um <strong>access token</strong> próprio após autorizar via OAuth.</li>
+              <li>• A URL de redirecionamento deve estar na lista de URLs permitidas do app na Shopify.</li>
             </ul>
           </div>
         </div>
@@ -241,6 +238,8 @@ export default function IntegrationsPage() {
   const [credentialsConfigured, setCredentialsConfigured] = useState(false);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
+  // Domínio da loja Shopify (ex: sua-loja.myshopify.com) — salvo junto das credenciais.
+  const [shopDomain, setShopDomain] = useState("");
   const [savingCreds, setSavingCreds] = useState(false);
   const [showCredsForm, setShowCredsForm] = useState(false);
 
@@ -263,6 +262,8 @@ export default function IntegrationsPage() {
       setCheckoutInjected(data.checkout_injected);
       setInjectedThemeId(data.injected_theme_id);
       setInjectedAt(data.injected_at);
+      // Pré-preenche o domínio digitado anteriormente (antes do OAuth).
+      setShopDomain(data.pending_domain ?? "");
     } catch {
       /* ignore */
     } finally {
@@ -275,23 +276,52 @@ export default function IntegrationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore]);
 
+  // Feedback do callback Shopify (redirecionado de volta para esta página).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("shopify");
+    if (!status) return;
+    const message = params.get("message");
+    if (status === "connected") {
+      toast.success("Shopify conectado! Sincronizando produtos...");
+    } else if (status === "error") {
+      toast.error(message ? decodeURIComponent(message) : "Falha ao conectar a Shopify.");
+    }
+    // Limpa a query da URL sem causar navegação.
+    const url = window.location.pathname + window.location.hash;
+    window.history.replaceState(null, "", url);
+    // Recarrega o status para refletir a conexão.
+    fetchShopifyStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSaveCredentials = async () => {
     if (!selectedStore) return;
     if (!clientId.trim() || !clientSecret.trim()) {
       toast.error("Preencha Client ID e Client Secret.");
       return;
     }
+    if (!shopDomain.trim()) {
+      toast.error("Informe o domínio da loja Shopify (ex: sua-loja.myshopify.com).");
+      return;
+    }
     setSavingCreds(true);
     try {
-      await api.put(`/stores/${selectedStore.id}/shopify/credentials`, {
-        shopify_client_id: clientId.trim(),
-        shopify_client_secret: clientSecret.trim(),
-      });
+      const data = await api.put<{ pending_domain?: string | null }>(
+        `/stores/${selectedStore.id}/shopify/credentials`,
+        {
+          shopify_client_id: clientId.trim(),
+          shopify_client_secret: clientSecret.trim(),
+          shopify_domain_input: shopDomain.trim(),
+        }
+      );
       toast.success("Credenciais Shopify salvas!");
       setCredentialsConfigured(true);
       setShowCredsForm(false);
       setClientId("");
       setClientSecret("");
+      if (data?.pending_domain) setShopDomain(data.pending_domain);
     } catch {
       toast.error("Erro ao salvar credenciais.");
     } finally {
@@ -306,16 +336,18 @@ export default function IntegrationsPage() {
       setShowCredsForm(true);
       return;
     }
-    // Redirect to the backend install route
-    const redirectUrl = apiUrl(
-      `/api/shopify/install?store_id=${selectedStore.id}`
+    if (!shopDomain.trim()) {
+      toast.error("Informe o domínio da loja Shopify antes de conectar.");
+      setShowCredsForm(true);
+      return;
+    }
+    const shop = shopDomain.trim().includes(".")
+      ? shopDomain.trim()
+      : `${shopDomain.trim()}.myshopify.com`;
+    // O backend responde com 302 → navegador vai direto para a Shopify.
+    window.location.href = apiUrl(
+      `/api/shopify/install?store_id=${selectedStore.id}&shop=${encodeURIComponent(shop)}`
     );
-    const shop = prompt("Digite o nome da loja Shopify (ex: sua-loja.myshopify.com):");
-    if (!shop) return;
-    const shopDomain = shop.includes(".")
-      ? shop
-      : `${shop}.myshopify.com`;
-    window.location.href = `${redirectUrl}&shop=${encodeURIComponent(shopDomain)}`;
   };
 
   const handleSyncProducts = async () => {
@@ -477,8 +509,8 @@ export default function IntegrationsPage() {
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Crie seu app no Shopify Partner Dashboard e cole aqui o
-                        Client ID e Client Secret. Veja o tutorial para saber
-                        como.
+                        Client ID, o Client Secret e o domínio da sua loja. Veja
+                        o tutorial para saber como.
                       </p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -505,6 +537,20 @@ export default function IntegrationsPage() {
                           autoComplete="off"
                         />
                       </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="shopify-domain">Domínio da loja Shopify</Label>
+                      <Input
+                        id="shopify-domain"
+                        placeholder="ex: sua-loja.myshopify.com"
+                        value={shopDomain}
+                        onChange={(e) => setShopDomain(e.target.value)}
+                        autoComplete="off"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        É para onde você será redirecionado ao clicar em{" "}
+                        <strong>Conectar Shopify</strong>.
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       <Button

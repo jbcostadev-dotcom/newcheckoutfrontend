@@ -9,6 +9,7 @@ export interface User {
 export interface ShopifyInjectStatus {
   connected: boolean;
   shopify_domain: string | null;
+  pending_domain: string | null;
   credentials_configured: boolean;
   checkout_injected: boolean;
   injected_theme_id: number | null;
