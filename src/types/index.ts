@@ -27,12 +27,19 @@ export interface Store {
   domain?: string | null;
 }
 
+export interface ProductAttribute {
+  name: string;
+  value: string;
+}
+
 export interface Product {
   id: number;
   store_id: number;
   shopify_product_id?: string | null;
   shopify_variant_id?: string | null;
   name: string;
+  parent_title?: string | null;
+  attributes?: ProductAttribute[] | null;
   description?: string | null;
   price: number;
   compare_at_price?: number | null;

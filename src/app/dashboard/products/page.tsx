@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/contexts/StoreContext";
 import { api } from "@/lib/api";
@@ -13,6 +13,7 @@ import {
   Trash2,
   ShoppingCart,
   RefreshCw,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,6 +39,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const fetchProducts = async () => {
     if (!selectedStore) return;
@@ -67,6 +69,59 @@ export default function ProductsPage() {
   const allSelected =
     activeProducts.length > 0 &&
     selectedIds.length === activeProducts.length;
+
+  const toggleGroup = (shopifyProductId: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(shopifyProductId)) {
+        next.delete(shopifyProductId);
+      } else {
+        next.add(shopifyProductId);
+      }
+      return next;
+    });
+  };
+
+  // Agrupa variantes do mesmo produto Shopify. Produtos criados manualmente
+  // (sem shopify_product_id) ficam como item próprio.
+  type GroupedItem =
+    | { kind: "plain"; product: Product }
+    | {
+        kind: "shopify";
+        shopifyProductId: string;
+        parentTitle: string;
+        imageUrl: string | null;
+        variants: Product[];
+      };
+
+  const groups: GroupedItem[] = useMemo(() => {
+    const map = new Map<string, GroupedItem>();
+    const order: GroupedItem[] = [];
+
+    for (const p of products) {
+      if (p.shopify_product_id) {
+        const key = `s:${p.shopify_product_id}`;
+        let g = map.get(key) as
+          | Extract<GroupedItem, { kind: "shopify" }>
+          | undefined;
+        if (!g) {
+          g = {
+            kind: "shopify",
+            shopifyProductId: p.shopify_product_id,
+            parentTitle: p.parent_title || p.name,
+            imageUrl: p.image_url ?? null,
+            variants: [],
+          };
+          map.set(key, g);
+          order.push(g);
+        }
+        g.variants.push(p);
+      } else {
+        order.push({ kind: "plain", product: p });
+      }
+    }
+    return order;
+  }, [products]);
 
   const toggleAll = () => {
     if (allSelected) {
@@ -236,45 +291,138 @@ export default function ProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((product) => {
-                const selected = selectedIds.includes(product.id);
-                return (
-                  <TableRow
-                    key={product.id}
-                    data-state={selected ? "selected" : undefined}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={selected}
-                        onCheckedChange={() => {
-                          if (product.is_active) toggleOne(product.id);
-                        }}
-                        disabled={!product.is_active}
-                        aria-label={`Selecionar ${product.name}`}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {product.image_url ? (
-                        <img
-                          src={product.image_url}
-                          alt=""
-                          className="h-9 w-9 rounded-lg object-cover"
+              {groups.flatMap((g) => {
+                if (g.kind === "plain") {
+                  const product = g.product;
+                  const selected = selectedIds.includes(product.id);
+                  return (
+                    <TableRow
+                      key={product.id}
+                      data-state={selected ? "selected" : undefined}
+                    >
+                      <TableCell>
+                        <Checkbox
+                          checked={selected}
+                          onCheckedChange={() => {
+                            if (product.is_active) toggleOne(product.id);
+                          }}
+                          disabled={!product.is_active}
+                          aria-label={`Selecionar ${product.name}`}
                         />
-                      ) : (
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
-                          <Package className="h-4 w-4 text-muted-foreground" />
+                      </TableCell>
+                      <TableCell>
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt=""
+                            className="h-9 w-9 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="font-medium">{product.name}</p>
+                            <p className="text-xs text-muted-foreground max-w-[280px] truncate">
+                              {product.description || "Sem descrição"}
+                            </p>
+                          </div>
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-xs text-muted-foreground max-w-[280px] truncate">
-                            {product.description || "Sem descrição"}
-                          </p>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatCurrency(Number(product.price))}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={product.is_active ? "success" : "secondary"}
+                        >
+                          {product.is_active ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <button
+                          type="button"
+                          onClick={() => openCheckout(product)}
+                          className="max-w-[180px] truncate text-xs text-primary underline-offset-2 hover:underline"
+                          title={product.checkout_url ?? "Sem link"}
+                        >
+                          {truncateUrl(product.checkout_url)}
+                        </button>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleCopyProductLink(product)}
+                            title="Copiar link direto"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(product.id)}
+                            title="Remover"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
-                        {product.shopify_product_id && (
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+
+                // Grupo Shopify com várias variantes.
+                const isExpanded = expandedGroups.has(g.shopifyProductId);
+                const activeVariants = g.variants.filter((v) => v.is_active);
+                const groupActive = activeVariants.length > 0;
+
+                return (
+                  <Fragment key={`group-${g.shopifyProductId}`}>
+                    <TableRow
+                      data-state={isExpanded ? "selected" : undefined}
+                      onClick={() => toggleGroup(g.shopifyProductId)}
+                      style={{ cursor: "pointer" }}
+                      className="hover:bg-muted/40"
+                    >
+                      <TableCell>
+                        <ChevronRight
+                          className={`h-4 w-4 transition-transform ${
+                            isExpanded ? "rotate-90" : ""
+                          }`}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {g.imageUrl ? (
+                          <img
+                            src={g.imageUrl}
+                            alt=""
+                            className="h-9 w-9 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="font-medium">{g.parentTitle}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {g.variants.length}{" "}
+                              {g.variants.length === 1
+                                ? "variante"
+                                : "variantes"}
+                            </p>
+                          </div>
                           <Badge
                             variant="outline"
                             className="border-[#95bf47]/40 text-[#95bf47]"
@@ -282,52 +430,113 @@ export default function ProductsPage() {
                           >
                             Shopify
                           </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {formatCurrency(Number(product.price))}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={product.is_active ? "success" : "secondary"}
-                      >
-                        {product.is_active ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <button
-                        type="button"
-                        onClick={() => openCheckout(product)}
-                        className="max-w-[180px] truncate text-xs text-primary underline-offset-2 hover:underline"
-                        title={product.checkout_url ?? "Sem link"}
-                      >
-                        {truncateUrl(product.checkout_url)}
-                      </button>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleCopyProductLink(product)}
-                          title="Copiar link direto"
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        —
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={groupActive ? "success" : "secondary"}
                         >
-                          <Copy className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(product.id)}
-                          title="Remover"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                          {groupActive ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        —
+                      </TableCell>
+                      <TableCell className="text-right text-xs text-muted-foreground">
+                        Grupo
+                      </TableCell>
+                    </TableRow>
+
+                    {isExpanded &&
+                      g.variants.map((variant) => {
+                        const selected = selectedIds.includes(variant.id);
+                        return (
+                          <TableRow
+                            key={variant.id}
+                            data-state={selected ? "selected" : undefined}
+                            className="bg-muted/20"
+                          >
+                            <TableCell className="pl-8">
+                              <Checkbox
+                                checked={selected}
+                                onCheckedChange={() => {
+                                  if (variant.is_active) toggleOne(variant.id);
+                                }}
+                                disabled={!variant.is_active}
+                                aria-label={`Selecionar ${variant.name}`}
+                              />
+                            </TableCell>
+                            <TableCell />
+                            <TableCell>
+                              <div className="flex flex-wrap items-center gap-1.5 pl-4">
+                                {variant.attributes &&
+                                variant.attributes.length > 0 ? (
+                                  variant.attributes.map((attr, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="inline-flex items-center rounded-md border bg-background px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+                                    >
+                                      {attr.name}: {attr.value}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs italic text-muted-foreground">
+                                    Variante única
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {formatCurrency(Number(variant.price))}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  variant.is_active ? "success" : "secondary"
+                                }
+                              >
+                                {variant.is_active ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <button
+                                type="button"
+                                onClick={() => openCheckout(variant)}
+                                className="max-w-[180px] truncate text-xs text-primary underline-offset-2 hover:underline"
+                                title={variant.checkout_url ?? "Sem link"}
+                              >
+                                {truncateUrl(variant.checkout_url)}
+                              </button>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleCopyProductLink(variant)}
+                                  title="Copiar link direto"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                  onClick={() => handleDelete(variant.id)}
+                                  title="Remover"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </Fragment>
                 );
               })}
             </TableBody>
