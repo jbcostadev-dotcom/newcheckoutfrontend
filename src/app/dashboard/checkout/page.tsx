@@ -87,6 +87,7 @@ const DEFAULTS: CheckoutSettings = {
   card_gateway_id: null,
   boleto_enabled: false,
   boleto_gateway_id: null,
+  default_payment_method: "credit_card",
 };
 
 interface SocialProofForm {
@@ -438,6 +439,7 @@ export default function CheckoutCustomizationPage() {
           card_gateway_id: settings.card_gateway_id,
           boleto_enabled: settings.boleto_enabled,
           boleto_gateway_id: settings.boleto_gateway_id,
+          default_payment_method: settings.default_payment_method,
         },
       },
       "*"
@@ -494,6 +496,7 @@ export default function CheckoutCustomizationPage() {
         card_gateway_id: settings.card_gateway_id,
         boleto_enabled: settings.boleto_enabled,
         boleto_gateway_id: settings.boleto_gateway_id,
+        default_payment_method: settings.default_payment_method,
       });
       toast.success("Configurações salvas!");
     } catch {
@@ -745,6 +748,24 @@ export default function CheckoutCustomizationPage() {
 
           {/* Métodos de Pagamento */}
           <AccordionSection title="Métodos de Pagamento" defaultOpen={true}>
+            <FieldRow label="Pagamento pré-selecionado">
+              <Select
+                value={settings.default_payment_method ?? "credit_card"}
+                onValueChange={(v) =>
+                  update("default_payment_method", v as "credit_card" | "pix" | "boleto")
+                }
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit_card">Cartão de crédito</SelectItem>
+                  <SelectItem value="pix">Pix</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldRow>
+
             {/* PIX */}
             <ToggleRow
               label="Ativar Pix"

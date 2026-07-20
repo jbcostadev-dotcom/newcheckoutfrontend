@@ -167,6 +167,7 @@ export interface CheckoutSettings {
   card_gateway_id?: number | null;
   boleto_enabled?: boolean;
   boleto_gateway_id?: number | null;
+  default_payment_method?: "credit_card" | "pix" | "boleto";
 }
 
 export interface SocialProof {
