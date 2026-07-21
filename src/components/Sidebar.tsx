@@ -19,6 +19,7 @@ import {
   ShoppingCart,
   Globe,
   Truck,
+  Users,
 } from "lucide-react";
 
 import { cn, initials } from "@/lib/utils";
@@ -80,6 +81,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
         label: "Produtos",
         icon: Package,
         match: (p) => p.startsWith("/dashboard/products"),
+      },
+      {
+        href: "/dashboard/clientes",
+        label: "Clientes",
+        icon: Users,
+        match: (p) => p.startsWith("/dashboard/clientes"),
       },
     ],
   },

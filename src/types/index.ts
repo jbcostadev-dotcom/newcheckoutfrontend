@@ -225,6 +225,30 @@ export interface Paginated<T> {
   total: number;
 }
 
+export interface Customer {
+  id: number;
+  store_id: number;
+  name: string;
+  email: string;
+  phone?: string | null;
+  document?: string | null;
+  zip?: string | null;
+  street?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  district?: string | null;
+  city?: string | null;
+  uf?: string | null;
+  shopify_customer_id?: string | null;
+  created_at?: string;
+  // Computed fields (added by /customers endpoints)
+  orders_count?: number;
+  paid_orders_count?: number;
+  paid_total?: number;
+  paid?: boolean;
+  orders?: Order[];
+}
+
 export const ORDER_STATUS_LABEL: Record<string, string> = {
   pending: "Pendente",
   processing: "Processando",
