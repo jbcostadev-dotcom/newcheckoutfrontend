@@ -262,8 +262,8 @@ export default function IntegrationsPage() {
       setCheckoutInjected(data.checkout_injected);
       setInjectedThemeId(data.injected_theme_id);
       setInjectedAt(data.injected_at);
-      // Pré-preenche o domínio digitado anteriormente (antes do OAuth).
-      setShopDomain(data.pending_domain ?? "");
+      // Pré-preenche o domínio (pendente ou já conectado) para reconectar.
+      setShopDomain(data.pending_domain ?? data.shopify_domain ?? "");
     } catch {
       /* ignore */
     } finally {
@@ -336,14 +336,15 @@ export default function IntegrationsPage() {
       setShowCredsForm(true);
       return;
     }
-    if (!shopDomain.trim()) {
+    const effectiveDomain = shopDomain.trim() || shopifyDomain || "";
+    if (!effectiveDomain) {
       toast.error("Informe o domínio da loja Shopify antes de conectar.");
       setShowCredsForm(true);
       return;
     }
-    const shop = shopDomain.trim().includes(".")
-      ? shopDomain.trim()
-      : `${shopDomain.trim()}.myshopify.com`;
+    const shop = effectiveDomain.includes(".")
+      ? effectiveDomain
+      : `${effectiveDomain}.myshopify.com`;
     // O backend responde com 302 → navegador vai direto para a Shopify.
     window.location.href = apiUrl(
       `/api/shopify/install?store_id=${selectedStore.id}&shop=${encodeURIComponent(shop)}`
