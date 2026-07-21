@@ -20,6 +20,7 @@ import {
   Globe,
   Truck,
   Users,
+  Sparkles,
 } from "lucide-react";
 
 import { cn, initials } from "@/lib/utils";
@@ -98,6 +99,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
         label: "Checkout",
         icon: Palette,
         match: (p) => p.startsWith("/dashboard/checkout"),
+      },
+      {
+        href: "/dashboard/order-bump",
+        label: "Order Bump",
+        icon: Sparkles,
+        match: (p) => p.startsWith("/dashboard/order-bump"),
       },
       {
         href: "/dashboard/fretes",
