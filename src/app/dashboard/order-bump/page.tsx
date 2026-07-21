@@ -13,6 +13,8 @@ import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -24,14 +26,49 @@ import {
 import {
   OrderBumpFormDialog,
 } from "@/components/order-bump-form-dialog";
+import type { CheckoutSettings } from "@/types";
 
 export default function OrderBumpPage() {
   const { selectedStore } = useStore();
   const [bumps, setBumps] = useState<OrderBump[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEnabled, setIsEnabled] = useState(true);
+  const [toggling, setToggling] = useState(false);
 
   const [isOpen, setIsOpen] = useState(false);
   const [editing, setEditing] = useState<OrderBump | null>(null);
+
+  const fetchSettings = async () => {
+    if (!selectedStore) return;
+    try {
+      const data = await api.get<CheckoutSettings>(
+        `/stores/${selectedStore.id}/settings`
+      );
+      setIsEnabled(data.enable_order_bump !== false);
+    } catch {
+      // keep default true
+    }
+  };
+
+  const handleToggleEnabled = async (enabled: boolean) => {
+    if (!selectedStore) return;
+    setToggling(true);
+    try {
+      await api.put(`/stores/${selectedStore.id}/settings`, {
+        enable_order_bump: enabled,
+      });
+      setIsEnabled(enabled);
+      toast.success(
+        enabled
+          ? "Order Bump ativado no checkout."
+          : "Order Bump desativado no checkout."
+      );
+    } catch {
+      toast.error("Erro ao atualizar status do Order Bump.");
+    } finally {
+      setToggling(false);
+    }
+  };
 
   const fetchBumps = async () => {
     if (!selectedStore) return;
@@ -50,6 +87,7 @@ export default function OrderBumpPage() {
 
   useEffect(() => {
     fetchBumps();
+    fetchSettings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore]);
 
@@ -119,6 +157,23 @@ export default function OrderBumpPage() {
           </Button>
         }
       />
+
+      <Card className="mt-6">
+        <CardContent className="flex items-center justify-between py-4">
+          <div>
+            <p className="text-sm font-semibold">Ativar Order Bump no checkout</p>
+            <p className="text-xs text-muted-foreground">
+              Quando desativado, nenhuma oferta será exibida no checkout,
+              independentemente do status individual.
+            </p>
+          </div>
+          <Switch
+            checked={isEnabled}
+            onCheckedChange={handleToggleEnabled}
+            disabled={toggling}
+          />
+        </CardContent>
+      </Card>
 
       <div className="mt-6 rounded-xl border bg-card">
         {loading ? (
