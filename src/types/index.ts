@@ -350,3 +350,54 @@ export interface OrderBumpFormData {
   button_label: string;
   is_active: boolean;
 }
+
+export type CouponDiscountType = "fixed" | "percent";
+export type CouponStatus = "active" | "inactive";
+
+export interface Coupon {
+  id: number;
+  store_id: number;
+  code: string;
+  name: string;
+  description?: string | null;
+  status: CouponStatus;
+  max_uses: number;
+  used_count: number;
+  discount_value: number;
+  discount_type: CouponDiscountType;
+  auto_apply: boolean;
+  first_purchase_only: boolean;
+  accumulate_with_promos: boolean;
+  free_shipping: boolean;
+  min_purchase_value?: number | null;
+  min_items_required: boolean;
+  min_items_quantity?: number | null;
+  starts_at: string;
+  expires_at: string;
+  applies_to_all_products: boolean;
+  products?: Product[] | null;
+  products_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CouponFormData {
+  code: string;
+  name: string;
+  description?: string | null;
+  status: CouponStatus;
+  max_uses: number;
+  discount_value: number;
+  discount_type: CouponDiscountType;
+  auto_apply: boolean;
+  first_purchase_only: boolean;
+  accumulate_with_promos: boolean;
+  free_shipping: boolean;
+  min_purchase_value?: number | null;
+  min_items_required: boolean;
+  min_items_quantity?: number | null;
+  starts_at: string;
+  expires_at: string;
+  applies_to_all_products: boolean;
+  product_ids: number[];
+}

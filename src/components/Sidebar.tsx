@@ -21,6 +21,7 @@ import {
   Truck,
   Users,
   Sparkles,
+  TicketPercent,
 } from "lucide-react";
 
 import { cn, initials } from "@/lib/utils";
@@ -105,6 +106,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
         label: "Order Bump",
         icon: Sparkles,
         match: (p) => p.startsWith("/dashboard/order-bump"),
+      },
+      {
+        href: "/dashboard/cupons",
+        label: "Cupons",
+        icon: TicketPercent,
+        match: (p) => p.startsWith("/dashboard/cupons"),
       },
       {
         href: "/dashboard/fretes",
