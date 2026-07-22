@@ -35,7 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 25;
 
 export default function ProductsPage() {
   const { selectedStore } = useStore();
