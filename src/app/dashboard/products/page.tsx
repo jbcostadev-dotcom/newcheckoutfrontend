@@ -14,12 +14,15 @@ import {
   ShoppingCart,
   RefreshCw,
   ChevronRight,
+  ChevronLeft,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -32,6 +35,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 
+const PAGE_SIZE = 50;
+
 export default function ProductsPage() {
   const { selectedStore } = useStore();
   const router = useRouter();
@@ -40,6 +45,8 @@ export default function ProductsPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const fetchProducts = async () => {
     if (!selectedStore) return;
@@ -61,26 +68,9 @@ export default function ProductsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore]);
 
-  const activeProducts = useMemo(
-    () => products.filter((p) => p.is_active),
-    [products]
-  );
-
-  const allSelected =
-    activeProducts.length > 0 &&
-    selectedIds.length === activeProducts.length;
-
-  const toggleGroup = (shopifyProductId: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(shopifyProductId)) {
-        next.delete(shopifyProductId);
-      } else {
-        next.add(shopifyProductId);
-      }
-      return next;
-    });
-  };
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   // Agrupa variantes do mesmo produto Shopify. Produtos criados manualmente
   // (sem shopify_product_id) ficam como item próprio.
@@ -123,11 +113,90 @@ export default function ProductsPage() {
     return order;
   }, [products]);
 
+  const groupMatchesSearch = (g: GroupedItem, term: string): boolean => {
+    if (!term.trim()) return true;
+    const t = term.toLowerCase();
+
+    if (g.kind === "plain") {
+      const p = g.product;
+      if (p.name.toLowerCase().includes(t)) return true;
+      if (p.parent_title?.toLowerCase().includes(t)) return true;
+      return (
+        p.attributes?.some(
+          (a) =>
+            a.name.toLowerCase().includes(t) ||
+            a.value.toLowerCase().includes(t)
+        ) ?? false
+      );
+    }
+
+    if (g.parentTitle.toLowerCase().includes(t)) return true;
+    return g.variants.some((v) => {
+      if (v.name.toLowerCase().includes(t)) return true;
+      if (v.parent_title?.toLowerCase().includes(t)) return true;
+      return (
+        v.attributes?.some(
+          (a) =>
+            a.name.toLowerCase().includes(t) ||
+            a.value.toLowerCase().includes(t)
+        ) ?? false
+      );
+    });
+  };
+
+  const filteredGroups = useMemo(() => {
+    return groups.filter((g) => groupMatchesSearch(g, search));
+  }, [groups, search]);
+
+  const lastPage = useMemo(
+    () => Math.max(1, Math.ceil(filteredGroups.length / PAGE_SIZE)),
+    [filteredGroups]
+  );
+
+  useEffect(() => {
+    setPage((p) => Math.min(p, lastPage));
+  }, [lastPage]);
+
+  const paginatedGroups = useMemo(() => {
+    const safePage = Math.min(page, lastPage);
+    return filteredGroups.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  }, [filteredGroups, page, lastPage]);
+
+  const activeInPage = useMemo(() => {
+    const ids: number[] = [];
+    for (const g of paginatedGroups) {
+      if (g.kind === "plain") {
+        if (g.product.is_active) ids.push(g.product.id);
+      } else {
+        for (const v of g.variants) {
+          if (v.is_active) ids.push(v.id);
+        }
+      }
+    }
+    return ids;
+  }, [paginatedGroups]);
+
+  const allSelected =
+    activeInPage.length > 0 &&
+    activeInPage.every((id) => selectedIds.includes(id));
+
+  const toggleGroup = (shopifyProductId: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(shopifyProductId)) {
+        next.delete(shopifyProductId);
+      } else {
+        next.add(shopifyProductId);
+      }
+      return next;
+    });
+  };
+
   const toggleAll = () => {
     if (allSelected) {
-      setSelectedIds([]);
+      setSelectedIds((prev) => prev.filter((id) => !activeInPage.includes(id)));
     } else {
-      setSelectedIds(activeProducts.map((p) => p.id));
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...activeInPage])));
     }
   };
 
@@ -185,14 +254,6 @@ export default function ProductsPage() {
     toast.success(`Link do carrinho (${selectedIds.length}) copiado!`);
   };
 
-  const openCheckout = (product: Product) => {
-    if (!product.checkout_url) {
-      toast.error("Este produto ainda não possui link gerado.");
-      return;
-    }
-    window.open(product.checkout_url, "_blank", "noopener,noreferrer");
-  };
-
   const handleSyncShopify = async () => {
     if (!selectedStore) return;
     setSyncing(true);
@@ -222,9 +283,34 @@ export default function ProductsPage() {
     }
   };
 
-  const truncateUrl = (url?: string | null) => {
-    if (!url) return "—";
-    return url.length > 48 ? url.slice(0, 45) + "…" : url;
+  const getAttributeNames = (attributes?: Product["attributes"]) => {
+    if (!attributes || attributes.length === 0) return null;
+    return attributes.map((a) => a.name).join(" / ");
+  };
+
+  const getGroupAttributeNames = (variants: Product[]) => {
+    for (const v of variants) {
+      const names = getAttributeNames(v.attributes);
+      if (names) return names;
+    }
+    return null;
+  };
+
+  const formatStock = (quantity?: number | null) => {
+    if (quantity === null || quantity === undefined) return "—";
+    return quantity;
+  };
+
+  const getGroupStock = (variants: Product[]) => {
+    let total = 0;
+    let hasStock = false;
+    for (const v of variants) {
+      if (v.stock_quantity !== null && v.stock_quantity !== undefined) {
+        total += v.stock_quantity;
+        hasStock = true;
+      }
+    }
+    return hasStock ? total : null;
   };
 
   return (
@@ -264,6 +350,18 @@ export default function ProductsPage() {
         }
       />
 
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar produtos..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
+
       <div className="mt-6 rounded-xl border">
         {loading ? (
           <div className="space-y-4 p-6">
@@ -271,7 +369,7 @@ export default function ProductsPage() {
               <Skeleton key={i} className="h-14 w-full" />
             ))}
           </div>
-        ) : products.length > 0 ? (
+        ) : paginatedGroups.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -286,12 +384,14 @@ export default function ProductsPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Preço</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Link</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="w-40">Atributos</TableHead>
+                <TableHead className="w-24">Estoque</TableHead>
+                <TableHead className="w-12">Link</TableHead>
+                <TableHead className="w-12 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {groups.flatMap((g) => {
+              {paginatedGroups.flatMap((g) => {
                 if (g.kind === "plain") {
                   const product = g.product;
                   const selected = selectedIds.includes(product.id);
@@ -344,36 +444,36 @@ export default function ProductsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <button
-                          type="button"
-                          onClick={() => openCheckout(product)}
-                          className="max-w-[180px] truncate text-xs text-primary underline-offset-2 hover:underline"
-                          title={product.checkout_url ?? "Sem link"}
+                        <span className="text-xs text-muted-foreground">
+                          {getAttributeNames(product.attributes) ?? "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {formatStock(product.stock_quantity)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleCopyProductLink(product)}
+                          title="Copiar link direto"
                         >
-                          {truncateUrl(product.checkout_url)}
-                        </button>
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleCopyProductLink(product)}
-                            title="Copiar link direto"
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDelete(product.id)}
-                            title="Remover"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(product.id)}
+                          title="Remover"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -442,8 +542,18 @@ export default function ProductsPage() {
                           {groupActive ? "Ativo" : "Inativo"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        —
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {getGroupAttributeNames(g.variants) ?? "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {formatStock(getGroupStock(g.variants))}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">—</span>
                       </TableCell>
                       <TableCell className="text-right text-xs text-muted-foreground">
                         Grupo
@@ -502,36 +612,36 @@ export default function ProductsPage() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <button
-                                type="button"
-                                onClick={() => openCheckout(variant)}
-                                className="max-w-[180px] truncate text-xs text-primary underline-offset-2 hover:underline"
-                                title={variant.checkout_url ?? "Sem link"}
+                              <span className="text-xs text-muted-foreground">
+                                {getAttributeNames(variant.attributes) ?? "—"}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs text-muted-foreground">
+                                {formatStock(variant.stock_quantity)}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleCopyProductLink(variant)}
+                                title="Copiar link direto"
                               >
-                                {truncateUrl(variant.checkout_url)}
-                              </button>
+                                <Copy className="h-3.5 w-3.5" />
+                              </Button>
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleCopyProductLink(variant)}
-                                  title="Copiar link direto"
-                                >
-                                  <Copy className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive"
-                                  onClick={() => handleDelete(variant.id)}
-                                  title="Remover"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => handleDelete(variant.id)}
+                                title="Remover"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );
@@ -541,7 +651,7 @@ export default function ProductsPage() {
               })}
             </TableBody>
           </Table>
-        ) : (
+        ) : products.length === 0 ? (
           <EmptyState
             icon={Package}
             title="Nenhum produto cadastrado"
@@ -552,8 +662,39 @@ export default function ProductsPage() {
               </Button>
             }
           />
+        ) : (
+          <EmptyState
+            icon={Package}
+            title="Nenhum produto encontrado"
+            description="Tente ajustar o termo de busca."
+          />
         )}
       </div>
+
+      {/* Paginação */}
+      {lastPage > 1 && (
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" /> Anterior
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {page} de {lastPage}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= lastPage}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Próximo <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </>
   );
 }

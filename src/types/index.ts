@@ -44,6 +44,7 @@ export interface Product {
   description?: string | null;
   price: number;
   compare_at_price?: number | null;
+  stock_quantity?: number | null;
   image_url?: string | null;
   checkout_url?: string | null;
   is_active: boolean;
