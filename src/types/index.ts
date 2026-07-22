@@ -404,3 +404,94 @@ export interface CouponFormData {
   applies_to_all_products: boolean;
   product_ids: number[];
 }
+
+export type AbandonedCartStep = "dados" | "entrega" | "pagamento" | "pagamento_tentado";
+export type AbandonedCartStatus = "open" | "recovered" | "converted" | "expired";
+export type AbandonedCartReason =
+  | "left_dados"
+  | "left_entrega"
+  | "left_pagamento"
+  | "card_refused"
+  | "pix_expired"
+  | "boleto_expired";
+
+export interface AbandonedCartItem {
+  product_id: number;
+  name: string;
+  qty: number;
+  unit_price: number;
+}
+
+export interface AbandonedCartAddress {
+  cep?: string | null;
+  logradouro?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  cidade?: string | null;
+  uf?: string | null;
+}
+
+export interface AbandonedCart {
+  id: number;
+  store_id: number;
+  customer_id?: number | null;
+  order_id?: number | null;
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string | null;
+  customer_document?: string | null;
+  items: AbandonedCartItem[];
+  subtotal: number;
+  total: number;
+  shipping_address?: AbandonedCartAddress | null;
+  shipping_method_id?: number | null;
+  shipping_method_name?: string | null;
+  shipping_price?: number | null;
+  step_reached: AbandonedCartStep;
+  payment_method?: PaymentMethod | null;
+  status: AbandonedCartStatus;
+  abandoned_reason?: AbandonedCartReason | null;
+  card_brand?: string | null;
+  card_last4?: string | null;
+  recovery_token?: string | null;
+  recovery_url?: string | null;
+  recovered_at?: string | null;
+  expired_at?: string | null;
+  last_activity_at?: string | null;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  device_type?: string | null;
+  user_agent?: string | null;
+  ip_address?: string | null;
+  created_at: string;
+  updated_at?: string;
+  // computed
+  items_count?: number;
+  customer?: Customer | null;
+  order?: Order | null;
+}
+
+export const ABANDONED_CART_STATUS_LABEL: Record<AbandonedCartStatus, string> = {
+  open: "Aberto",
+  recovered: "Recuperado",
+  converted: "Convertido",
+  expired: "Expirado",
+};
+
+export const ABANDONED_CART_STEP_LABEL: Record<AbandonedCartStep, string> = {
+  dados: "Identificação",
+  entrega: "Entrega",
+  pagamento: "Pagamento",
+  pagamento_tentado: "Tentou pagar",
+};
+
+export const ABANDONED_CART_REASON_LABEL: Record<AbandonedCartReason, string> = {
+  left_dados: "Saiu na identificação",
+  left_entrega: "Saiu na entrega",
+  left_pagamento: "Saiu no pagamento",
+  card_refused: "Cartão recusado",
+  pix_expired: "PIX expirou",
+  boleto_expired: "Boleto expirou",
+};

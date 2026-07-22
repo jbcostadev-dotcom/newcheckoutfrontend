@@ -79,6 +79,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
         match: (p) => p.startsWith("/dashboard/orders"),
       },
       {
+        href: "/dashboard/carrinhos-abandonados",
+        label: "Carrinhos Abandonados",
+        icon: ShoppingBag,
+        match: (p) => p.startsWith("/dashboard/carrinhos-abandonados"),
+      },
+      {
         href: "/dashboard/products",
         label: "Produtos",
         icon: Package,
