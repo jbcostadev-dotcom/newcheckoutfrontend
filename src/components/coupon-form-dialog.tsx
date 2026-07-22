@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useStore } from "@/contexts/StoreContext";
 import { api } from "@/lib/api";
 import { cn, formatCurrency } from "@/lib/utils";
-import type { Coupon, CouponFormData, Product } from "@/types";
+import type { Coupon, CouponFormData, Product, ShippingMethod } from "@/types";
 import {
   TicketPercent,
   AlertCircle,
@@ -56,6 +56,7 @@ const EMPTY_FORM: CouponFormData = {
   first_purchase_only: false,
   accumulate_with_promos: false,
   free_shipping: false,
+  shipping_method_id: null,
   min_purchase_value: null,
   min_items_required: false,
   min_items_quantity: null,
@@ -89,7 +90,9 @@ export function CouponFormDialog({
   const { selectedStore } = useStore();
   const [form, setForm] = useState<CouponFormData>(EMPTY_FORM);
   const [products, setProducts] = useState<Product[]>([]);
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [loadingShipping, setLoadingShipping] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const isEditing = Boolean(coupon);
@@ -109,6 +112,7 @@ export function CouponFormDialog({
           first_purchase_only: coupon.first_purchase_only,
           accumulate_with_promos: coupon.accumulate_with_promos,
           free_shipping: coupon.free_shipping,
+          shipping_method_id: coupon.shipping_method_id ?? null,
           min_purchase_value: coupon.min_purchase_value ?? null,
           min_items_required: coupon.min_items_required,
           min_items_quantity: coupon.min_items_quantity ?? null,
@@ -138,6 +142,16 @@ export function CouponFormDialog({
       .then((data) => setProducts(Array.isArray(data) ? data : []))
       .catch(() => toast.error("Erro ao carregar produtos."))
       .finally(() => setLoadingProducts(false));
+  }, [open, selectedStore]);
+
+  useEffect(() => {
+    if (!open || !selectedStore) return;
+    setLoadingShipping(true);
+    api
+      .get<ShippingMethod[]>(`/stores/${selectedStore.id}/shipping-methods`)
+      .then((data) => setShippingMethods(Array.isArray(data) ? data : []))
+      .catch(() => toast.error("Erro ao carregar fretes."))
+      .finally(() => setLoadingShipping(false));
   }, [open, selectedStore]);
 
   const selectedProducts = useMemo(() => {
@@ -210,6 +224,7 @@ export function CouponFormDialog({
         ? Number(form.min_items_quantity) || 1
         : null,
       discount_value: Number(form.discount_value) || 0,
+      shipping_method_id: form.free_shipping ? form.shipping_method_id : null,
       product_ids: form.applies_to_all_products ? [] : form.product_ids,
     };
 
@@ -585,6 +600,44 @@ export function CouponFormDialog({
                     checked={form.free_shipping}
                     onChange={(v) => updateForm("free_shipping", v)}
                   />
+
+                  {form.free_shipping && (
+                    <div className="space-y-2 pl-6">
+                      <Label htmlFor="coupon-shipping-method">
+                        Método de frete grátis
+                      </Label>
+                      {loadingShipping ? (
+                        <p className="text-sm text-muted-foreground">
+                          Carregando fretes…
+                        </p>
+                      ) : shippingMethods.length === 0 ? (
+                        <p className="text-sm text-amber-600">
+                          Cadastre fretes em /dashboard/fretes para selecionar aqui.
+                        </p>
+                      ) : (
+                        <Select
+                          value={String(form.shipping_method_id ?? "")}
+                          onValueChange={(v) =>
+                            updateForm(
+                              "shipping_method_id",
+                              v ? Number(v) : null
+                            )
+                          }
+                        >
+                          <SelectTrigger id="coupon-shipping-method">
+                            <SelectValue placeholder="Selecione o frete" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {shippingMethods.map((sm) => (
+                              <SelectItem key={sm.id} value={String(sm.id)}>
+                                {sm.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  )}
                 </div>
               </section>
             </div>

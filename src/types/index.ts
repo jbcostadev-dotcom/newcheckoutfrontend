@@ -369,6 +369,7 @@ export interface Coupon {
   first_purchase_only: boolean;
   accumulate_with_promos: boolean;
   free_shipping: boolean;
+  shipping_method_id?: number | null;
   min_purchase_value?: number | null;
   min_items_required: boolean;
   min_items_quantity?: number | null;
@@ -377,6 +378,7 @@ export interface Coupon {
   applies_to_all_products: boolean;
   products?: Product[] | null;
   products_count?: number;
+  shipping_method?: Pick<ShippingMethod, "id" | "name"> | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -393,6 +395,7 @@ export interface CouponFormData {
   first_purchase_only: boolean;
   accumulate_with_promos: boolean;
   free_shipping: boolean;
+  shipping_method_id?: number | null;
   min_purchase_value?: number | null;
   min_items_required: boolean;
   min_items_quantity?: number | null;
