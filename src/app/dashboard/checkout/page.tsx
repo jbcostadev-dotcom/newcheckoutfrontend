@@ -561,8 +561,11 @@ export default function CheckoutCustomizationPage() {
       setBannerPreview(null);
       setPixLogoPreview(null);
       toast.success("Configurações salvas!");
-    } catch {
-      toast.error("Erro ao salvar configurações.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao salvar configurações.";
+      // eslint-disable-next-line no-console
+      console.error("[checkout/save]", err);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
