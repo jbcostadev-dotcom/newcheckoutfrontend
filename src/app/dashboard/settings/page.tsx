@@ -27,19 +27,13 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [name, setName] = useState(selectedStore?.name ?? "");
-  const [subdomain, setSubdomain] = useState(
-    selectedStore?.subdomain ?? ""
-  );
-  const [customDomain, setCustomDomain] = useState(
-    selectedStore?.custom_domain ?? ""
-  );
+
   const [active, setActive] = useState(selectedStore?.status ?? true);
 
   // Sync form when store changes
   if (selectedStore && selectedStore.name !== name) {
     setName(selectedStore.name);
-    setSubdomain(selectedStore.subdomain ?? "");
-    setCustomDomain(selectedStore.custom_domain ?? "");
+
     setActive(selectedStore.status);
   }
 
@@ -49,8 +43,7 @@ export default function SettingsPage() {
     try {
       await api.put(`/stores/${selectedStore.id}`, {
         name,
-        subdomain,
-        custom_domain: customDomain || null,
+
         status: active,
       });
       toast.success("Configurações salvas!");
@@ -114,31 +107,7 @@ export default function SettingsPage() {
                 placeholder="Minha Loja"
               />
             </div>
-            <Separator />
-            <div className="max-w-md space-y-2">
-              <Label htmlFor="store-subdomain">
-                Subdomínio
-                <span className="ml-2 text-xs text-muted-foreground">
-                  .checkoutpro.com
-                </span>
-              </Label>
-              <Input
-                id="store-subdomain"
-                value={subdomain}
-                onChange={(e) => setSubdomain(e.target.value)}
-                placeholder="minha-loja"
-              />
-            </div>
-            <Separator />
-            <div className="max-w-md space-y-2">
-              <Label htmlFor="store-custom-domain">Domínio personalizado</Label>
-              <Input
-                id="store-custom-domain"
-                value={customDomain}
-                onChange={(e) => setCustomDomain(e.target.value)}
-                placeholder="loja.exemplo.com (opcional)"
-              />
-            </div>
+
             <Separator />
             <div className="flex items-center justify-between max-w-md">
               <div>
