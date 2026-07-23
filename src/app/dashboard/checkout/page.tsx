@@ -44,6 +44,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ImageUpload } from "@/components/image-upload";
 
 const DEFAULTS: CheckoutSettings = {
   store_id: 0,
@@ -219,6 +220,14 @@ export default function CheckoutCustomizationPage() {
   // Gateways list (for payment method selects)
   const [gateways, setGateways] = useState<Gateway[]>([]);
 
+  // Image upload state
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [pixLogoFile, setPixLogoFile] = useState<File | null>(null);
+  const [pixLogoPreview, setPixLogoPreview] = useState<string | null>(null);
+
   // Social Proofs state
   const [socialProofs, setSocialProofs] = useState<SocialProof[]>([]);
   const [spModalOpen, setSpModalOpen] = useState(false);
@@ -318,6 +327,22 @@ export default function CheckoutCustomizationPage() {
   const handleSpPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    const validType = ["image/webp", "image/jpeg", "image/png"].includes(file.type);
+    const validExt = ["webp", "jpg", "jpeg", "png"].includes(ext || "");
+    if (!validType && !validExt) {
+      toast.error("Formato inválido. Envie apenas .webp, .jpg, .jpeg ou .png.");
+      if (spFileInputRef.current) spFileInputRef.current.value = "";
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("A foto deve ter no máximo 8 MB.");
+      if (spFileInputRef.current) spFileInputRef.current.value = "";
+      return;
+    }
+
     setSpForm((prev) => ({
       ...prev,
       photo: file,
@@ -401,8 +426,8 @@ export default function CheckoutCustomizationPage() {
         settings: {
           primary_color: settings.primary_color,
           secondary_color: settings.secondary_color,
-          logo_url: settings.logo_url,
-          banner_url: settings.banner_url,
+          logo_url: logoPreview ?? settings.logo_url,
+          banner_url: bannerPreview ?? settings.banner_url,
           banner_height: settings.banner_height,
           enable_order_bump: settings.enable_order_bump,
           dark_mode: settings.dark_mode,
@@ -426,7 +451,7 @@ export default function CheckoutCustomizationPage() {
           scarcity_countdown_minutes: settings.scarcity_countdown_minutes,
           pix_confirmation_title: settings.pix_confirmation_title,
           pix_confirmation_message: settings.pix_confirmation_message,
-          pix_confirmation_logo: settings.pix_confirmation_logo,
+          pix_confirmation_logo: pixLogoPreview ?? settings.pix_confirmation_logo,
           footer_text: settings.footer_text,
           footer_show_cnpj: settings.footer_show_cnpj,
           footer_cnpj: settings.footer_cnpj,
@@ -444,60 +469,97 @@ export default function CheckoutCustomizationPage() {
       },
       "*"
     );
-  }, [settings]);
+  }, [settings, logoPreview, bannerPreview, pixLogoPreview]);
 
   useEffect(() => {
     if (!previewUrl) return;
     postSettingsToIframe();
   }, [settings, previewUrl, iframeKey, postSettingsToIframe]);
 
+  const buildSettingsPayload = (): Record<string, unknown> => {
+    return {
+      primary_color: settings.primary_color,
+      secondary_color: settings.secondary_color,
+      banner_height: settings.banner_height,
+      enable_order_bump: settings.enable_order_bump,
+      dark_mode: settings.dark_mode,
+      button_text: settings.button_text,
+      banner_message: settings.banner_message,
+      header_store_name_visible: settings.header_store_name_visible,
+      header_secure_badge: settings.header_secure_badge,
+      header_logo_alignment: settings.header_logo_alignment,
+      header_bg_color: settings.header_bg_color,
+      header_icon_color: settings.header_icon_color,
+      announcement_bar_enabled: settings.announcement_bar_enabled,
+      announcement_bar_bg: settings.announcement_bar_bg,
+      announcement_bar_text_color: settings.announcement_bar_text_color,
+      summary_title: settings.summary_title,
+      summary_show_discount: settings.summary_show_discount,
+      summary_coupon_enabled: settings.summary_coupon_enabled,
+      step_title_font_size: settings.step_title_font_size,
+      scarcity_enabled: settings.scarcity_enabled,
+      scarcity_type: settings.scarcity_type,
+      scarcity_text: settings.scarcity_text,
+      scarcity_countdown_minutes: settings.scarcity_countdown_minutes,
+      pix_confirmation_title: settings.pix_confirmation_title,
+      pix_confirmation_message: settings.pix_confirmation_message,
+      footer_text: settings.footer_text,
+      footer_show_cnpj: settings.footer_show_cnpj,
+      footer_cnpj: settings.footer_cnpj,
+      font_family: settings.font_family,
+      font_size_base: settings.font_size_base,
+      social_proofs_enabled: settings.social_proofs_enabled,
+      pix_enabled: settings.pix_enabled,
+      pix_gateway_id: settings.pix_gateway_id,
+      card_enabled: settings.card_enabled,
+      card_gateway_id: settings.card_gateway_id,
+      boleto_enabled: settings.boleto_enabled,
+      boleto_gateway_id: settings.boleto_gateway_id,
+      default_payment_method: settings.default_payment_method,
+    };
+  };
+
   const handleSave = async () => {
     if (!selectedStore) return;
     setSaving(true);
     try {
-      await api.put(`/stores/${selectedStore.id}/settings`, {
-        primary_color: settings.primary_color,
-        secondary_color: settings.secondary_color,
-        logo_url: settings.logo_url,
-        banner_url: settings.banner_url,
-        banner_height: settings.banner_height,
-        enable_order_bump: settings.enable_order_bump,
-        dark_mode: settings.dark_mode,
-        button_text: settings.button_text,
-        banner_message: settings.banner_message,
-        header_store_name_visible: settings.header_store_name_visible,
-        header_secure_badge: settings.header_secure_badge,
-        header_logo_alignment: settings.header_logo_alignment,
-        header_bg_color: settings.header_bg_color,
-        header_icon_color: settings.header_icon_color,
-        announcement_bar_enabled: settings.announcement_bar_enabled,
-        announcement_bar_bg: settings.announcement_bar_bg,
-        announcement_bar_text_color: settings.announcement_bar_text_color,
-        summary_title: settings.summary_title,
-        summary_show_discount: settings.summary_show_discount,
-        summary_coupon_enabled: settings.summary_coupon_enabled,
-        step_title_font_size: settings.step_title_font_size,
-        scarcity_enabled: settings.scarcity_enabled,
-        scarcity_type: settings.scarcity_type,
-        scarcity_text: settings.scarcity_text,
-        scarcity_countdown_minutes: settings.scarcity_countdown_minutes,
-        pix_confirmation_title: settings.pix_confirmation_title,
-        pix_confirmation_message: settings.pix_confirmation_message,
-        pix_confirmation_logo: settings.pix_confirmation_logo,
-        footer_text: settings.footer_text,
-        footer_show_cnpj: settings.footer_show_cnpj,
-        footer_cnpj: settings.footer_cnpj,
-        font_family: settings.font_family,
-        font_size_base: settings.font_size_base,
-        social_proofs_enabled: settings.social_proofs_enabled,
-        pix_enabled: settings.pix_enabled,
-        pix_gateway_id: settings.pix_gateway_id,
-        card_enabled: settings.card_enabled,
-        card_gateway_id: settings.card_gateway_id,
-        boleto_enabled: settings.boleto_enabled,
-        boleto_gateway_id: settings.boleto_gateway_id,
-        default_payment_method: settings.default_payment_method,
-      });
+      const payload = buildSettingsPayload();
+      const hasImages = logoFile || bannerFile || pixLogoFile;
+
+      let saved: CheckoutSettings;
+      if (hasImages) {
+        const formData = new FormData();
+        Object.entries(payload).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            formData.append(key, String(value));
+          }
+        });
+        formData.append("logo_url", logoFile ? "__keep__" : (settings.logo_url ?? ""));
+        formData.append("banner_url", bannerFile ? "__keep__" : (settings.banner_url ?? ""));
+        formData.append("pix_confirmation_logo", pixLogoFile ? "__keep__" : (settings.pix_confirmation_logo ?? ""));
+        if (logoFile) formData.append("logo", logoFile);
+        if (bannerFile) formData.append("banner", bannerFile);
+        if (pixLogoFile) formData.append("pix_confirmation_logo_file", pixLogoFile);
+
+        saved = await api.put<CheckoutSettings>(`/stores/${selectedStore.id}/settings`, formData);
+      } else {
+        saved = await api.put<CheckoutSettings>(`/stores/${selectedStore.id}/settings`, {
+          ...payload,
+          logo_url: settings.logo_url,
+          banner_url: settings.banner_url,
+          pix_confirmation_logo: settings.pix_confirmation_logo,
+        });
+      }
+
+      setSettings((prev) => ({ ...prev, ...saved }));
+
+      // Reset file inputs and commit previews to saved URLs after successful save
+      setLogoFile(null);
+      setBannerFile(null);
+      setPixLogoFile(null);
+      setLogoPreview(null);
+      setBannerPreview(null);
+      setPixLogoPreview(null);
       toast.success("Configurações salvas!");
     } catch {
       toast.error("Erro ao salvar configurações.");
@@ -588,12 +650,17 @@ export default function CheckoutCustomizationPage() {
               checked={settings.header_secure_badge ?? true}
               onCheckedChange={(v) => update("header_secure_badge", v)}
             />
-            <FieldRow label="URL da Logo">
-              <Input
-                value={settings.logo_url ?? ""}
-                onChange={(e) => update("logo_url", e.target.value)}
-                placeholder="https://exemplo.com/logo.png"
-                className="h-8 text-xs"
+            <FieldRow label="Logo">
+              <ImageUpload
+                value={logoFile}
+                previewUrl={logoPreview ?? settings.logo_url}
+                onChange={setLogoFile}
+                onPreviewChange={setLogoPreview}
+                onRemove={() => update("logo_url", null)}
+                label="Upload da logo"
+                recommendedSize="180x60 px (fundo transparente)"
+                placeholder="Clique para enviar a logo"
+                previewClassName="h-20 w-full"
               />
             </FieldRow>
             <FieldRow label="Alinhamento da Logo">
@@ -660,12 +727,17 @@ export default function CheckoutCustomizationPage() {
 
           {/* Banner */}
           <AccordionSection title="Banner">
-            <FieldRow label="URL da imagem">
-              <Input
-                value={settings.banner_url ?? ""}
-                onChange={(e) => update("banner_url", e.target.value)}
-                placeholder="https://exemplo.com/banner.jpg"
-                className="h-8 text-xs"
+            <FieldRow label="Imagem do banner">
+              <ImageUpload
+                value={bannerFile}
+                previewUrl={bannerPreview ?? settings.banner_url}
+                onChange={setBannerFile}
+                onPreviewChange={setBannerPreview}
+                onRemove={() => update("banner_url", null)}
+                label="Upload do banner"
+                recommendedSize="1200x300 px"
+                placeholder="Clique para enviar o banner"
+                previewClassName="h-24 w-full"
               />
             </FieldRow>
             <FieldRow label="Altura do banner">
@@ -685,9 +757,9 @@ export default function CheckoutCustomizationPage() {
                 </SelectContent>
               </Select>
             </FieldRow>
-            {settings.banner_url && (
+            {(bannerPreview ?? settings.banner_url) && (
               <img
-                src={settings.banner_url}
+                src={bannerPreview ?? settings.banner_url ?? ""}
                 alt="Banner"
                 className="w-full rounded-md object-cover"
                 style={{
@@ -922,12 +994,17 @@ export default function CheckoutCustomizationPage() {
                 className="min-h-[60px] text-xs"
               />
             </FieldRow>
-            <FieldRow label="Logo (URL)">
-              <Input
-                value={settings.pix_confirmation_logo ?? ""}
-                onChange={(e) => update("pix_confirmation_logo", e.target.value)}
-                placeholder="https://exemplo.com/pix-logo.png"
-                className="h-8 text-xs"
+            <FieldRow label="Logo">
+              <ImageUpload
+                value={pixLogoFile}
+                previewUrl={pixLogoPreview ?? settings.pix_confirmation_logo}
+                onChange={setPixLogoFile}
+                onPreviewChange={setPixLogoPreview}
+                onRemove={() => update("pix_confirmation_logo", null)}
+                label="Upload da logo do Pix"
+                recommendedSize="120x120 px (fundo transparente)"
+                placeholder="Clique para enviar a logo"
+                previewClassName="h-20 w-full"
               />
             </FieldRow>
           </AccordionSection>
@@ -1170,10 +1247,13 @@ export default function CheckoutCustomizationPage() {
               <input
                 ref={spFileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/webp,image/jpeg,image/png"
                 className="hidden"
                 onChange={handleSpPhotoChange}
               />
+              <p className="text-[10px] text-muted-foreground text-center px-2">
+                Recomendado: 300x300 px · .webp, .jpg, .jpeg ou .png · até 8 MB
+              </p>
               {spForm.photoPreview && (
                 <Button
                   variant="ghost"

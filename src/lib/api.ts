@@ -41,7 +41,8 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, auth = true, headers, ...rest } = options;
+  let { body, auth = true, headers, ...rest } = options;
+  let method = options.method ?? "GET";
 
   const finalHeaders: Record<string, string> = {
     Accept: "application/json",
@@ -49,7 +50,16 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   };
 
   // FormData — let the browser set the multipart boundary
-  const isFormData = body instanceof FormData;
+  // PHP/Laravel does not parse multipart bodies for PUT/PATCH, so spoof the method via POST.
+  let isFormData = body instanceof FormData;
+  if (isFormData && method !== "GET" && method !== "POST") {
+    const fd = body as FormData;
+    if (!fd.has("_method")) {
+      fd.append("_method", method);
+    }
+    method = "POST";
+  }
+
   if (body !== undefined && !isFormData) {
     finalHeaders["Content-Type"] = "application/json";
   }
@@ -60,6 +70,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   const res = await fetch(`${API_URL}/api${path}`, {
     ...rest,
+    method,
     headers: finalHeaders,
     body:
       body === undefined
