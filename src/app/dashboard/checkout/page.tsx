@@ -76,8 +76,23 @@ const DEFAULTS: CheckoutSettings = {
   pix_confirmation_message: null,
   pix_confirmation_logo: null,
   footer_text: "Ambiente seguro · SSL criptografado",
+  footer_show_store_name: true,
+  footer_show_payment_methods: true,
   footer_show_cnpj: false,
   footer_cnpj: null,
+  footer_show_contact_email: false,
+  footer_show_whatsapp: false,
+  footer_show_address: false,
+  footer_show_terms: false,
+  footer_terms_url: null,
+  footer_show_privacy_policy: false,
+  footer_privacy_policy_url: null,
+  footer_show_return_policy: false,
+  footer_return_policy_url: null,
+  footer_text_color: "#3a3636",
+  footer_background_color: "#ffffff",
+  footer_show_security_icons: true,
+  footer_icon_color: "#000000",
   font_family: "Inter",
   font_size_base: "16px",
   social_proofs_enabled: true,
@@ -416,8 +431,23 @@ export default function CheckoutCustomizationPage() {
           pix_confirmation_message: settings.pix_confirmation_message,
           pix_confirmation_logo: pixLogoPreview ?? settings.pix_confirmation_logo,
           footer_text: settings.footer_text,
+          footer_show_store_name: settings.footer_show_store_name,
+          footer_show_payment_methods: settings.footer_show_payment_methods,
           footer_show_cnpj: settings.footer_show_cnpj,
           footer_cnpj: settings.footer_cnpj,
+          footer_show_contact_email: settings.footer_show_contact_email,
+          footer_show_whatsapp: settings.footer_show_whatsapp,
+          footer_show_address: settings.footer_show_address,
+          footer_show_terms: settings.footer_show_terms,
+          footer_terms_url: settings.footer_terms_url,
+          footer_show_privacy_policy: settings.footer_show_privacy_policy,
+          footer_privacy_policy_url: settings.footer_privacy_policy_url,
+          footer_show_return_policy: settings.footer_show_return_policy,
+          footer_return_policy_url: settings.footer_return_policy_url,
+          footer_text_color: settings.footer_text_color,
+          footer_background_color: settings.footer_background_color,
+          footer_show_security_icons: settings.footer_show_security_icons,
+          footer_icon_color: settings.footer_icon_color,
           font_family: settings.font_family,
           font_size_base: settings.font_size_base,
           social_proofs_enabled: settings.social_proofs_enabled,
@@ -467,8 +497,23 @@ export default function CheckoutCustomizationPage() {
       pix_confirmation_title: settings.pix_confirmation_title,
       pix_confirmation_message: settings.pix_confirmation_message,
       footer_text: settings.footer_text,
+      footer_show_store_name: settings.footer_show_store_name,
+      footer_show_payment_methods: settings.footer_show_payment_methods,
       footer_show_cnpj: settings.footer_show_cnpj,
       footer_cnpj: settings.footer_cnpj,
+      footer_show_contact_email: settings.footer_show_contact_email,
+      footer_show_whatsapp: settings.footer_show_whatsapp,
+      footer_show_address: settings.footer_show_address,
+      footer_show_terms: settings.footer_show_terms,
+      footer_terms_url: settings.footer_terms_url,
+      footer_show_privacy_policy: settings.footer_show_privacy_policy,
+      footer_privacy_policy_url: settings.footer_privacy_policy_url,
+      footer_show_return_policy: settings.footer_show_return_policy,
+      footer_return_policy_url: settings.footer_return_policy_url,
+      footer_text_color: settings.footer_text_color,
+      footer_background_color: settings.footer_background_color,
+      footer_show_security_icons: settings.footer_show_security_icons,
+      footer_icon_color: settings.footer_icon_color,
       font_family: settings.font_family,
       font_size_base: settings.font_size_base,
       social_proofs_enabled: settings.social_proofs_enabled,
@@ -981,27 +1026,121 @@ export default function CheckoutCustomizationPage() {
 
           {/* Rodapé */}
           <AccordionSection title="Rodapé">
-            <FieldRow label="Texto do rodapé">
-              <Input
-                value={settings.footer_text ?? "Ambiente seguro · SSL criptografado"}
-                onChange={(e) => update("footer_text", e.target.value)}
-                className="h-8 text-xs"
-              />
-            </FieldRow>
             <ToggleRow
-              label="Exibir CNPJ"
+              label="Exibir nome da loja"
+              checked={settings.footer_show_store_name ?? true}
+              onCheckedChange={(v) => update("footer_show_store_name", v)}
+            />
+            <ToggleRow
+              label="Exibir formas de pagamento"
+              checked={settings.footer_show_payment_methods ?? true}
+              onCheckedChange={(v) => update("footer_show_payment_methods", v)}
+            />
+            <ToggleRow
+              label="Exibir CNPJ/CPF"
               checked={settings.footer_show_cnpj ?? false}
               onCheckedChange={(v) => update("footer_show_cnpj", v)}
             />
             {(settings.footer_show_cnpj ?? false) && (
-              <FieldRow label="CNPJ">
+              <div className="pb-2">
                 <Input
                   value={settings.footer_cnpj ?? ""}
                   onChange={(e) => update("footer_cnpj", e.target.value)}
                   placeholder="00.000.000/0000-00"
                   className="h-8 text-xs"
                 />
-              </FieldRow>
+              </div>
+            )}
+            <ToggleRow
+              label="Exibir e-mail de contato"
+              checked={settings.footer_show_contact_email ?? false}
+              onCheckedChange={(v) => update("footer_show_contact_email", v)}
+            />
+            <ToggleRow
+              label="Exibir whatsapp"
+              checked={settings.footer_show_whatsapp ?? false}
+              onCheckedChange={(v) => update("footer_show_whatsapp", v)}
+            />
+            <ToggleRow
+              label="Exibir endereço"
+              checked={settings.footer_show_address ?? false}
+              onCheckedChange={(v) => update("footer_show_address", v)}
+            />
+            
+            <ToggleRow
+              label="Exibir termos de uso"
+              checked={settings.footer_show_terms ?? false}
+              onCheckedChange={(v) => update("footer_show_terms", v)}
+            />
+            {(settings.footer_show_terms ?? false) && (
+              <div className="pb-2">
+                <Input
+                  value={settings.footer_terms_url ?? ""}
+                  onChange={(e) => update("footer_terms_url", e.target.value)}
+                  placeholder="Informe a url"
+                  className="h-8 text-xs"
+                />
+              </div>
+            )}
+
+            <ToggleRow
+              label="Exibir política de privacidade"
+              checked={settings.footer_show_privacy_policy ?? false}
+              onCheckedChange={(v) => update("footer_show_privacy_policy", v)}
+            />
+            {(settings.footer_show_privacy_policy ?? false) && (
+              <div className="pb-2">
+                <Input
+                  value={settings.footer_privacy_policy_url ?? ""}
+                  onChange={(e) => update("footer_privacy_policy_url", e.target.value)}
+                  placeholder="Informe a url"
+                  className="h-8 text-xs"
+                />
+              </div>
+            )}
+
+            <ToggleRow
+              label="Exibir trocas e devoluções"
+              checked={settings.footer_show_return_policy ?? false}
+              onCheckedChange={(v) => update("footer_show_return_policy", v)}
+            />
+            {(settings.footer_show_return_policy ?? false) && (
+              <div className="pb-2">
+                <Input
+                  value={settings.footer_return_policy_url ?? ""}
+                  onChange={(e) => update("footer_return_policy_url", e.target.value)}
+                  placeholder="Informe a url"
+                  className="h-8 text-xs"
+                />
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2 py-2">
+              <ColorField
+                label="Texto"
+                value={settings.footer_text_color ?? "#3a3636"}
+                onChange={(v) => update("footer_text_color", v)}
+              />
+              <ColorField
+                label="Fundo do rodapé"
+                value={settings.footer_background_color ?? "#ffffff"}
+                onChange={(v) => update("footer_background_color", v)}
+              />
+            </div>
+
+            <ToggleRow
+              label="Mostrar ícones do rodapé"
+              checked={settings.footer_show_security_icons ?? true}
+              onCheckedChange={(v) => update("footer_show_security_icons", v)}
+            />
+            {(settings.footer_show_security_icons ?? true) && (
+              <div className="w-1/2 pt-1 pb-2">
+                <ColorField
+                  label="Cor dos ícones"
+                  value={settings.footer_icon_color ?? "#000000"}
+                  onChange={(v) => update("footer_icon_color", v)}
+                />
+              </div>
             )}
           </AccordionSection>
 
