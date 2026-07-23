@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useStore } from "@/contexts/StoreContext";
 import { api } from "@/lib/api";
-import { formatDate } from "@/lib/utils";
-import type { Gateway, GatewayProvider } from "@/types";
+import type { Gateway, GatewayProvider, CheckoutSettings } from "@/types";
 import { GATEWAY_LABELS } from "@/types";
 import {
   CreditCard,
@@ -13,6 +12,10 @@ import {
   Trash2,
   Zap,
   Percent,
+  ExternalLink,
+  Save,
+  QrCode,
+  Barcode,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -48,6 +51,57 @@ const PROVIDERS: { value: GatewayProvider; label: string }[] = [
   { value: "pagseguro", label: "PagSeguro" },
   { value: "asaas", label: "Asaas" },
 ];
+
+/* ── Provider metadata for premium cards ── */
+const PROVIDER_META: Record<
+  string,
+  {
+    icon: string;
+    color: string;
+    description: string;
+    methods: string[];
+    isNew?: boolean;
+  }
+> = {
+  unipay: {
+    icon: "U",
+    color: "hsl(243 75% 59%)",
+    description: "A Unipay (FastSoft) oferece processamento de pagamentos via PIX e Cartão.",
+    methods: ["PIX", "Cartão"],
+    isNew: true,
+  },
+  mercadopago: {
+    icon: "M",
+    color: "hsl(199 100% 44%)",
+    description: "O Mercado Pago oferece pagamentos via PIX, Cartão e Boleto.",
+    methods: ["PIX", "Cartão", "Boleto"],
+  },
+  stripe: {
+    icon: "S",
+    color: "hsl(250 75% 60%)",
+    description: "A Stripe oferece processamento de pagamentos via Cartão de crédito.",
+    methods: ["Cartão"],
+  },
+  pagseguro: {
+    icon: "P",
+    color: "hsl(142 70% 45%)",
+    description: "O PagSeguro oferece pagamentos via PIX, Cartão e Boleto.",
+    methods: ["PIX", "Cartão", "Boleto"],
+  },
+  asaas: {
+    icon: "A",
+    color: "hsl(38 92% 50%)",
+    description: "O Asaas oferece pagamentos via PIX e Cartão d...",
+    methods: ["PIX", "Cartão"],
+    isNew: true,
+  },
+};
+
+const METHOD_ICON: Record<string, React.ReactNode> = {
+  PIX: <QrCode className="h-3 w-3" />,
+  Cartão: <CreditCard className="h-3 w-3" />,
+  Boleto: <Barcode className="h-3 w-3" />,
+};
 
 interface FormData {
   provider: GatewayProvider;
@@ -96,6 +150,18 @@ export default function GatewaysPage() {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
+  /* ── Payment method settings state ── */
+  const [paymentSettings, setPaymentSettings] = useState({
+    pix_enabled: true,
+    pix_gateway_id: null as number | null,
+    card_enabled: true,
+    card_gateway_id: null as number | null,
+    boleto_enabled: false,
+    boleto_gateway_id: null as number | null,
+    default_payment_method: "credit_card" as "credit_card" | "pix" | "boleto",
+  });
+  const [savingPayment, setSavingPayment] = useState(false);
+
   const fetchGateways = async () => {
     if (!selectedStore) return;
     setLoading(true);
@@ -111,10 +177,85 @@ export default function GatewaysPage() {
     }
   };
 
+  const fetchPaymentSettings = useCallback(async () => {
+    if (!selectedStore) return;
+    try {
+      const data = await api.get<CheckoutSettings>(
+        `/stores/${selectedStore.id}/settings`
+      );
+      setPaymentSettings({
+        pix_enabled: data.pix_enabled ?? true,
+        pix_gateway_id: data.pix_gateway_id ?? null,
+        card_enabled: data.card_enabled ?? true,
+        card_gateway_id: data.card_gateway_id ?? null,
+        boleto_enabled: data.boleto_enabled ?? false,
+        boleto_gateway_id: data.boleto_gateway_id ?? null,
+        default_payment_method: data.default_payment_method ?? "credit_card",
+      });
+    } catch {
+      // silent — settings may not exist yet
+    }
+  }, [selectedStore]);
+
   useEffect(() => {
     fetchGateways();
+    fetchPaymentSettings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore]);
+
+  // Auto-fill: when gateways load, if a method is enabled but has no gateway, assign the first active one.
+  useEffect(() => {
+    const activeGateways = gateways.filter((g) => g.is_active);
+    if (activeGateways.length === 0) return;
+    const firstId = activeGateways[0].id;
+    let changed = false;
+    const patch: Partial<typeof paymentSettings> = {};
+
+    if (paymentSettings.pix_enabled && !paymentSettings.pix_gateway_id) {
+      patch.pix_gateway_id = firstId;
+      changed = true;
+    }
+    if (paymentSettings.card_enabled && !paymentSettings.card_gateway_id) {
+      patch.card_gateway_id = firstId;
+      changed = true;
+    }
+    if (paymentSettings.boleto_enabled && !paymentSettings.boleto_gateway_id) {
+      patch.boleto_gateway_id = firstId;
+      changed = true;
+    }
+
+    if (changed) {
+      setPaymentSettings((prev) => ({ ...prev, ...patch }));
+    }
+  }, [gateways]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSavePaymentSettings = async () => {
+    if (!selectedStore) return;
+    setSavingPayment(true);
+    try {
+      await api.put(`/stores/${selectedStore.id}/settings`, {
+        pix_enabled: paymentSettings.pix_enabled,
+        pix_gateway_id: paymentSettings.pix_gateway_id,
+        card_enabled: paymentSettings.card_enabled,
+        card_gateway_id: paymentSettings.card_gateway_id,
+        boleto_enabled: paymentSettings.boleto_enabled,
+        boleto_gateway_id: paymentSettings.boleto_gateway_id,
+        default_payment_method: paymentSettings.default_payment_method,
+      });
+      toast.success("Métodos de pagamento salvos!");
+    } catch {
+      toast.error("Erro ao salvar métodos de pagamento.");
+    } finally {
+      setSavingPayment(false);
+    }
+  };
+
+  const updatePayment = <K extends keyof typeof paymentSettings>(
+    key: K,
+    value: (typeof paymentSettings)[K]
+  ) => {
+    setPaymentSettings((prev) => ({ ...prev, [key]: value }));
+  };
 
   const openCreate = () => {
     setEditingId(null);
@@ -228,11 +369,13 @@ export default function GatewaysPage() {
     });
   };
 
+  const activeGateways = gateways.filter((g) => g.is_active);
+
   return (
     <>
       <PageHeader
         title="Gateways de Pagamento"
-        description="Configure os provedores de pagamento aceitos no checkout."
+        description="Configure os provedores de pagamento e métodos aceitos no checkout."
         actions={
           <Button onClick={openCreate}>
             <Plus className="h-4 w-4" /> Adicionar Gateway
@@ -240,84 +383,290 @@ export default function GatewaysPage() {
         }
       />
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {loading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-40 w-full rounded-xl" />
-          ))
-        ) : gateways.length > 0 ? (
-          gateways.map((gw) => (
-            <Card key={gw.id}>
-              <CardHeader className="flex flex-row items-start justify-between pb-2">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <CreditCard className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">
-                      {GATEWAY_LABELS[gw.provider] ?? gw.provider}
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      Adicionado {formatDate(gw.created_at ?? "")}
-                    </p>
-                  </div>
-                </div>
-                <Badge variant={gw.is_active ? "success" : "secondary"}>
-                  {gw.is_active ? "Ativo" : "Inativo"}
-                </Badge>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">
-                    Ativar no checkout
-                  </Label>
-                  <Switch
-                    checked={gw.is_active}
-                    onCheckedChange={() => handleToggleActive(gw)}
-                  />
-                </div>
+      {/* ═══ Payment Methods Control Section ═══ */}
+      <Card className="mt-6 border-border/60 bg-card/80 backdrop-blur-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                <CreditCard className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Métodos de Pagamento</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Ative os métodos e selecione qual gateway processar cada um.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={handleSavePaymentSettings}
+              disabled={savingPayment}
+              className="gap-1.5"
+            >
+              <Save className="h-3.5 w-3.5" />
+              {savingPayment ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Default payment method */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Pagamento pré-selecionado
+              </Label>
+              <Select
+                value={paymentSettings.default_payment_method}
+                onValueChange={(v) =>
+                  updatePayment("default_payment_method", v as "credit_card" | "pix" | "boleto")
+                }
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit_card">Cartão de crédito</SelectItem>
+                  <SelectItem value="pix">Pix</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* PIX */}
+            <div className="space-y-3 rounded-lg border border-border/50 p-3">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => openEdit(gw)}
-                  >
-                    <Pencil className="h-3.5 w-3.5" /> Editar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleTest(gw.id)}
-                  >
-                    <Zap className="h-3.5 w-3.5" /> Testar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(gw.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <QrCode className="h-4 w-4 text-emerald-500" />
+                  <Label className="text-xs font-semibold">Pix</Label>
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <EmptyState
-            icon={CreditCard}
-            title="Nenhum gateway configurado"
-            description="Adicione um provedor de pagamento para começar a receber."
-            action={
-              <Button onClick={openCreate}>
-                <Plus className="h-4 w-4" /> Adicionar Gateway
-              </Button>
-            }
-            className="sm:col-span-2 lg:col-span-3"
-          />
-        )}
+                <Switch
+                  checked={paymentSettings.pix_enabled}
+                  onCheckedChange={(v) => updatePayment("pix_enabled", v)}
+                />
+              </div>
+              {paymentSettings.pix_enabled && (
+                <Select
+                  value={paymentSettings.pix_gateway_id ? String(paymentSettings.pix_gateway_id) : ""}
+                  onValueChange={(v) => updatePayment("pix_gateway_id", v ? Number(v) : null)}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Selecione a gateway" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeGateways.map((g) => (
+                      <SelectItem key={g.id} value={String(g.id)}>
+                        {GATEWAY_LABELS[g.provider] ?? g.provider}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Cartão */}
+            <div className="space-y-3 rounded-lg border border-border/50 p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-blue-500" />
+                  <Label className="text-xs font-semibold">Cartão</Label>
+                </div>
+                <Switch
+                  checked={paymentSettings.card_enabled}
+                  onCheckedChange={(v) => updatePayment("card_enabled", v)}
+                />
+              </div>
+              {paymentSettings.card_enabled && (
+                <Select
+                  value={paymentSettings.card_gateway_id ? String(paymentSettings.card_gateway_id) : ""}
+                  onValueChange={(v) => updatePayment("card_gateway_id", v ? Number(v) : null)}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Selecione a gateway" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeGateways.map((g) => (
+                      <SelectItem key={g.id} value={String(g.id)}>
+                        {GATEWAY_LABELS[g.provider] ?? g.provider}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Boleto */}
+            <div className="space-y-3 rounded-lg border border-border/50 p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Barcode className="h-4 w-4 text-amber-500" />
+                  <Label className="text-xs font-semibold">Boleto</Label>
+                </div>
+                <Switch
+                  checked={paymentSettings.boleto_enabled}
+                  onCheckedChange={(v) => updatePayment("boleto_enabled", v)}
+                />
+              </div>
+              {paymentSettings.boleto_enabled && (
+                <Select
+                  value={paymentSettings.boleto_gateway_id ? String(paymentSettings.boleto_gateway_id) : ""}
+                  onValueChange={(v) => updatePayment("boleto_gateway_id", v ? Number(v) : null)}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Selecione a gateway" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeGateways.map((g) => (
+                      <SelectItem key={g.id} value={String(g.id)}>
+                        {GATEWAY_LABELS[g.provider] ?? g.provider}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+
+          {activeGateways.length === 0 && (
+            <p className="text-[11px] text-muted-foreground text-center py-3 mt-3 border-t border-border/40">
+              Nenhuma gateway ativa. Conecte uma gateway abaixo para usar nos métodos de pagamento.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ═══ Gateway Cards — Premium Dark Design ═══ */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Gateways Cadastradas</h2>
+          <span className="text-xs text-muted-foreground">
+            {gateways.length} gateway{gateways.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-56 w-full rounded-xl" />
+            ))
+          ) : gateways.length > 0 ? (
+            gateways.map((gw) => {
+              const meta = PROVIDER_META[gw.provider] ?? {
+                icon: (gw.provider ?? "?")[0].toUpperCase(),
+                color: "hsl(243 75% 59%)",
+                description: `Gateway ${GATEWAY_LABELS[gw.provider] ?? gw.provider}`,
+                methods: ["PIX"],
+              };
+
+              return (
+                <div
+                  key={gw.id}
+                  className="group relative flex flex-col rounded-xl border border-border/40 bg-card overflow-hidden transition-all duration-300 hover:border-border/80 hover:shadow-lg hover:shadow-primary/5"
+                >
+                  {/* Card body */}
+                  <div className="flex-1 p-5">
+                    {/* Top row: icon + status */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div
+                        className="flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold text-white shadow-lg transition-transform duration-300 group-hover:scale-105"
+                        style={{ backgroundColor: meta.color }}
+                      >
+                        {meta.icon}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`inline-block h-2 w-2 rounded-full ${
+                            gw.is_active
+                              ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]"
+                              : "bg-zinc-500"
+                          }`}
+                        />
+                        <span className="text-[11px] text-muted-foreground">
+                          {gw.is_active ? "Disponível" : "Inativo"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Name + badge */}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <h3 className="text-sm font-bold leading-tight">
+                        {GATEWAY_LABELS[gw.provider] ?? gw.provider}
+                      </h3>
+                      {(meta as { isNew?: boolean }).isNew && (
+                        <Badge
+                          variant="secondary"
+                          className="text-[9px] px-1.5 py-0 h-4 font-bold bg-primary/15 text-primary border-0"
+                        >
+                          NOVO
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-[11px] text-muted-foreground leading-relaxed mb-4 line-clamp-2">
+                      {meta.description}
+                    </p>
+
+                    {/* Method badges */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {meta.methods.map((method) => (
+                        <span
+                          key={method}
+                          className="inline-flex items-center gap-1 rounded-md border border-border/50 bg-secondary/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                        >
+                          {METHOD_ICON[method]}
+                          {method}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Card footer */}
+                  <div className="border-t border-border/40 p-3 flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-9 text-xs gap-1.5 transition-colors hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                      onClick={() => openEdit(gw)}
+                    >
+                      Conectar <ExternalLink className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                      onClick={() => handleToggleActive(gw)}
+                      title={gw.is_active ? "Desativar" : "Ativar"}
+                    >
+                      <Zap className={`h-3.5 w-3.5 ${gw.is_active ? "text-emerald-500" : ""}`} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(gw.id)}
+                      title="Remover"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <EmptyState
+              icon={CreditCard}
+              title="Nenhum gateway configurado"
+              description="Adicione um provedor de pagamento para começar a receber."
+              action={
+                <Button onClick={openCreate}>
+                  <Plus className="h-4 w-4" /> Adicionar Gateway
+                </Button>
+              }
+              className="sm:col-span-2 lg:col-span-3 xl:col-span-4"
+            />
+          )}
+        </div>
       </div>
 
       {/* Dialog Criar/Editar Gateway */}

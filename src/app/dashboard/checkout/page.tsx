@@ -4,8 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/contexts/StoreContext";
 import { api } from "@/lib/api";
-import type { CheckoutSettings, SocialProof, Gateway } from "@/types";
-import { GATEWAY_LABELS } from "@/types";
+import type { CheckoutSettings, SocialProof } from "@/types";
 import {
   ArrowLeft,
   ChevronDown,
@@ -217,8 +216,7 @@ export default function CheckoutCustomizationPage() {
   const [iframeKey, setIframeKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
-  // Gateways list (for payment method selects)
-  const [gateways, setGateways] = useState<Gateway[]>([]);
+
 
   // Image upload state
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -251,17 +249,7 @@ export default function CheckoutCustomizationPage() {
     }
   }, [selectedStore]);
 
-  const fetchGateways = useCallback(async () => {
-    if (!selectedStore) return;
-    try {
-      const data = await api.get<Gateway[]>(
-        `/stores/${selectedStore.id}/gateways`
-      );
-      setGateways(data);
-    } catch {
-      // silent
-    }
-  }, [selectedStore]);
+
 
   const fetchSocialProofs = useCallback(async () => {
     if (!selectedStore) return;
@@ -277,35 +265,10 @@ export default function CheckoutCustomizationPage() {
 
   useEffect(() => {
     fetchSettings();
-    fetchGateways();
     fetchSocialProofs();
-  }, [fetchSettings, fetchGateways, fetchSocialProofs]);
+  }, [fetchSettings, fetchSocialProofs]);
 
-  // Auto-fill: when gateways load, if a method is enabled but has no gateway, assign the first active one.
-  useEffect(() => {
-    const activeGateways = gateways.filter((g) => g.is_active);
-    if (activeGateways.length === 0) return;
-    const firstId = activeGateways[0].id;
-    let changed = false;
-    const patch: Partial<CheckoutSettings> = {};
 
-    if ((settings.pix_enabled ?? true) && !settings.pix_gateway_id) {
-      patch.pix_gateway_id = firstId;
-      changed = true;
-    }
-    if ((settings.card_enabled ?? true) && !settings.card_gateway_id) {
-      patch.card_gateway_id = firstId;
-      changed = true;
-    }
-    if ((settings.boleto_enabled ?? false) && !settings.boleto_gateway_id) {
-      patch.boleto_gateway_id = firstId;
-      changed = true;
-    }
-
-    if (changed) {
-      setSettings((prev) => ({ ...prev, ...patch }));
-    }
-  }, [gateways]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openSpModal = (proof?: SocialProof) => {
     if (proof) {
@@ -826,113 +789,7 @@ export default function CheckoutCustomizationPage() {
             </FieldRow>
           </AccordionSection>
 
-          {/* Métodos de Pagamento */}
-          <AccordionSection title="Métodos de Pagamento" defaultOpen={true}>
-            <FieldRow label="Pagamento pré-selecionado">
-              <Select
-                value={settings.default_payment_method ?? "credit_card"}
-                onValueChange={(v) =>
-                  update("default_payment_method", v as "credit_card" | "pix" | "boleto")
-                }
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="credit_card">Cartão de crédito</SelectItem>
-                  <SelectItem value="pix">Pix</SelectItem>
-                  <SelectItem value="boleto">Boleto</SelectItem>
-                </SelectContent>
-              </Select>
-            </FieldRow>
 
-            {/* PIX */}
-            <ToggleRow
-              label="Ativar Pix"
-              description="Habilitar pagamento via Pix no checkout"
-              checked={settings.pix_enabled ?? true}
-              onCheckedChange={(v) => update("pix_enabled", v)}
-            />
-            {(settings.pix_enabled ?? true) && (
-              <FieldRow label="Gateway do Pix">
-                <Select
-                  value={settings.pix_gateway_id ? String(settings.pix_gateway_id) : ""}
-                  onValueChange={(v) => update("pix_gateway_id", v ? Number(v) : null)}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Selecione a gateway" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {gateways.filter((g) => g.is_active).map((g) => (
-                      <SelectItem key={g.id} value={String(g.id)}>
-                        {GATEWAY_LABELS[g.provider] ?? g.provider}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FieldRow>
-            )}
-
-            {/* Cartão */}
-            <ToggleRow
-              label="Ativar Cartão de Crédito"
-              description="Habilitar pagamento via cartão no checkout"
-              checked={settings.card_enabled ?? true}
-              onCheckedChange={(v) => update("card_enabled", v)}
-            />
-            {(settings.card_enabled ?? true) && (
-              <FieldRow label="Gateway do Cartão">
-                <Select
-                  value={settings.card_gateway_id ? String(settings.card_gateway_id) : ""}
-                  onValueChange={(v) => update("card_gateway_id", v ? Number(v) : null)}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Selecione a gateway" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {gateways.filter((g) => g.is_active).map((g) => (
-                      <SelectItem key={g.id} value={String(g.id)}>
-                        {GATEWAY_LABELS[g.provider] ?? g.provider}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FieldRow>
-            )}
-
-            {/* Boleto */}
-            <ToggleRow
-              label="Ativar Boleto"
-              description="Habilitar pagamento via boleto no checkout"
-              checked={settings.boleto_enabled ?? false}
-              onCheckedChange={(v) => update("boleto_enabled", v)}
-            />
-            {(settings.boleto_enabled ?? false) && (
-              <FieldRow label="Gateway do Boleto">
-                <Select
-                  value={settings.boleto_gateway_id ? String(settings.boleto_gateway_id) : ""}
-                  onValueChange={(v) => update("boleto_gateway_id", v ? Number(v) : null)}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Selecione a gateway" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {gateways.filter((g) => g.is_active).map((g) => (
-                      <SelectItem key={g.id} value={String(g.id)}>
-                        {GATEWAY_LABELS[g.provider] ?? g.provider}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FieldRow>
-            )}
-
-            {gateways.filter((g) => g.is_active).length === 0 && (
-              <p className="text-[11px] text-muted-foreground text-center py-2">
-                Nenhuma gateway ativa. Configure uma na página de Gateways.
-              </p>
-            )}
-          </AccordionSection>
 
           {/* Escassez */}
           <AccordionSection title="Escassez">
