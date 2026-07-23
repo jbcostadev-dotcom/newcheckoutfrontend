@@ -16,6 +16,9 @@ import {
   Save,
   QrCode,
   Barcode,
+  ChevronUp,
+  ChevronDown,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -150,14 +153,14 @@ export default function GatewaysPage() {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
-  /* ── Payment method settings state ── */
+  /* ── Payment method settings state (arrays for fallback) ── */
   const [paymentSettings, setPaymentSettings] = useState({
     pix_enabled: true,
-    pix_gateway_id: null as number | null,
+    pix_gateway_ids: [] as number[],
     card_enabled: true,
-    card_gateway_id: null as number | null,
+    card_gateway_ids: [] as number[],
     boleto_enabled: false,
-    boleto_gateway_id: null as number | null,
+    boleto_gateway_ids: [] as number[],
     default_payment_method: "credit_card" as "credit_card" | "pix" | "boleto",
   });
   const [savingPayment, setSavingPayment] = useState(false);
@@ -185,11 +188,11 @@ export default function GatewaysPage() {
       );
       setPaymentSettings({
         pix_enabled: data.pix_enabled ?? true,
-        pix_gateway_id: data.pix_gateway_id ?? null,
+        pix_gateway_ids: data.pix_gateway_ids ?? (data.pix_gateway_id ? [data.pix_gateway_id] : []),
         card_enabled: data.card_enabled ?? true,
-        card_gateway_id: data.card_gateway_id ?? null,
+        card_gateway_ids: data.card_gateway_ids ?? (data.card_gateway_id ? [data.card_gateway_id] : []),
         boleto_enabled: data.boleto_enabled ?? false,
-        boleto_gateway_id: data.boleto_gateway_id ?? null,
+        boleto_gateway_ids: data.boleto_gateway_ids ?? (data.boleto_gateway_id ? [data.boleto_gateway_id] : []),
         default_payment_method: data.default_payment_method ?? "credit_card",
       });
     } catch {
@@ -203,24 +206,24 @@ export default function GatewaysPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore]);
 
-  // Auto-fill: when gateways load, if a method is enabled but has no gateway, assign the first active one.
+  // Auto-fill: when gateways load, if a method is enabled but has no gateways, assign the first active one.
   useEffect(() => {
-    const activeGateways = gateways.filter((g) => g.is_active);
-    if (activeGateways.length === 0) return;
-    const firstId = activeGateways[0].id;
+    const active = gateways.filter((g) => g.is_active);
+    if (active.length === 0) return;
+    const firstId = active[0].id;
     let changed = false;
     const patch: Partial<typeof paymentSettings> = {};
 
-    if (paymentSettings.pix_enabled && !paymentSettings.pix_gateway_id) {
-      patch.pix_gateway_id = firstId;
+    if (paymentSettings.pix_enabled && paymentSettings.pix_gateway_ids.length === 0) {
+      patch.pix_gateway_ids = [firstId];
       changed = true;
     }
-    if (paymentSettings.card_enabled && !paymentSettings.card_gateway_id) {
-      patch.card_gateway_id = firstId;
+    if (paymentSettings.card_enabled && paymentSettings.card_gateway_ids.length === 0) {
+      patch.card_gateway_ids = [firstId];
       changed = true;
     }
-    if (paymentSettings.boleto_enabled && !paymentSettings.boleto_gateway_id) {
-      patch.boleto_gateway_id = firstId;
+    if (paymentSettings.boleto_enabled && paymentSettings.boleto_gateway_ids.length === 0) {
+      patch.boleto_gateway_ids = [firstId];
       changed = true;
     }
 
@@ -235,11 +238,14 @@ export default function GatewaysPage() {
     try {
       await api.put(`/stores/${selectedStore.id}/settings`, {
         pix_enabled: paymentSettings.pix_enabled,
-        pix_gateway_id: paymentSettings.pix_gateway_id,
+        pix_gateway_ids: paymentSettings.pix_gateway_ids,
+        pix_gateway_id: paymentSettings.pix_gateway_ids[0] ?? null,
         card_enabled: paymentSettings.card_enabled,
-        card_gateway_id: paymentSettings.card_gateway_id,
+        card_gateway_ids: paymentSettings.card_gateway_ids,
+        card_gateway_id: paymentSettings.card_gateway_ids[0] ?? null,
         boleto_enabled: paymentSettings.boleto_enabled,
-        boleto_gateway_id: paymentSettings.boleto_gateway_id,
+        boleto_gateway_ids: paymentSettings.boleto_gateway_ids,
+        boleto_gateway_id: paymentSettings.boleto_gateway_ids[0] ?? null,
         default_payment_method: paymentSettings.default_payment_method,
       });
       toast.success("Métodos de pagamento salvos!");
@@ -255,6 +261,39 @@ export default function GatewaysPage() {
     value: (typeof paymentSettings)[K]
   ) => {
     setPaymentSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  /* ── Gateway list helpers ── */
+  type GatewayListKey = "pix_gateway_ids" | "card_gateway_ids" | "boleto_gateway_ids";
+
+  const addGatewayToList = (listKey: GatewayListKey, gwId: number) => {
+    setPaymentSettings((prev) => {
+      const current = prev[listKey];
+      if (current.includes(gwId)) return prev;
+      return { ...prev, [listKey]: [...current, gwId] };
+    });
+  };
+
+  const removeGatewayFromList = (listKey: GatewayListKey, gwId: number) => {
+    setPaymentSettings((prev) => ({
+      ...prev,
+      [listKey]: prev[listKey].filter((id) => id !== gwId),
+    }));
+  };
+
+  const moveGatewayInList = (listKey: GatewayListKey, idx: number, direction: "up" | "down") => {
+    setPaymentSettings((prev) => {
+      const arr = [...prev[listKey]];
+      const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= arr.length) return prev;
+      [arr[idx], arr[targetIdx]] = [arr[targetIdx], arr[idx]];
+      return { ...prev, [listKey]: arr };
+    });
+  };
+
+  const getAvailableGateways = (listKey: GatewayListKey) => {
+    const usedIds = paymentSettings[listKey];
+    return activeGateways.filter((g) => !usedIds.includes(g.id));
   };
 
   const openCreate = () => {
@@ -410,121 +449,229 @@ export default function GatewaysPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Default payment method */}
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">
-                Pagamento pré-selecionado
-              </Label>
-              <Select
-                value={paymentSettings.default_payment_method}
-                onValueChange={(v) =>
-                  updatePayment("default_payment_method", v as "credit_card" | "pix" | "boleto")
-                }
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="credit_card">Cartão de crédito</SelectItem>
-                  <SelectItem value="pix">Pix</SelectItem>
-                  <SelectItem value="boleto">Boleto</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Default payment method */}
+          <div className="mb-5 max-w-xs">
+            <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              Pagamento pré-selecionado
+            </Label>
+            <Select
+              value={paymentSettings.default_payment_method}
+              onValueChange={(v) =>
+                updatePayment("default_payment_method", v as "credit_card" | "pix" | "boleto")
+              }
+            >
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="credit_card">Cartão de crédito</SelectItem>
+                <SelectItem value="pix">Pix</SelectItem>
+                <SelectItem value="boleto">Boleto</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* PIX */}
-            <div className="space-y-3 rounded-lg border border-border/50 p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <QrCode className="h-4 w-4 text-emerald-500" />
-                  <Label className="text-xs font-semibold">Pix</Label>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {/* ── PIX ── */}
+            {(() => {
+              const listKey: GatewayListKey = "pix_gateway_ids";
+              const enabled = paymentSettings.pix_enabled;
+              const ids = paymentSettings.pix_gateway_ids;
+              const available = getAvailableGateways(listKey);
+              return (
+                <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <QrCode className="h-4 w-4 text-emerald-500" />
+                      <span className="text-sm font-semibold">Pix</span>
+                    </div>
+                    <Switch
+                      checked={enabled}
+                      onCheckedChange={(v) => updatePayment("pix_enabled", v)}
+                    />
+                  </div>
+                  {enabled && (
+                    <>
+                      {ids.length === 0 && (
+                        <p className="text-[11px] text-muted-foreground italic">Nenhuma gateway selecionada</p>
+                      )}
+                      <div className="space-y-1.5">
+                        {ids.map((gwId, idx) => {
+                          const gw = gateways.find((g) => g.id === gwId);
+                          return (
+                            <div key={gwId} className="flex items-center gap-1.5 rounded-md border border-border/40 bg-card px-2.5 py-1.5">
+                              <span className="flex-1 text-xs font-medium truncate">
+                                {gw ? (GATEWAY_LABELS[gw.provider] ?? gw.provider) : `#${gwId}`}
+                              </span>
+                              <Badge variant={idx === 0 ? "success" : "secondary"} className="text-[9px] px-1.5 py-0 h-4 shrink-0">
+                                {idx === 0 ? "Principal" : `Fallback ${idx}`}
+                              </Badge>
+                              <button onClick={() => moveGatewayInList(listKey, idx, "up")} disabled={idx === 0} className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors" title="Subir">
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => moveGatewayInList(listKey, idx, "down")} disabled={idx === ids.length - 1} className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors" title="Descer">
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => removeGatewayFromList(listKey, gwId)} className="p-0.5 text-destructive hover:text-destructive/80 transition-colors" title="Remover">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {available.length > 0 && (
+                        <Select onValueChange={(v) => addGatewayToList(listKey, Number(v))}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="+ Adicionar fallback" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {available.map((g) => (
+                              <SelectItem key={g.id} value={String(g.id)}>
+                                {GATEWAY_LABELS[g.provider] ?? g.provider}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </>
+                  )}
                 </div>
-                <Switch
-                  checked={paymentSettings.pix_enabled}
-                  onCheckedChange={(v) => updatePayment("pix_enabled", v)}
-                />
-              </div>
-              {paymentSettings.pix_enabled && (
-                <Select
-                  value={paymentSettings.pix_gateway_id ? String(paymentSettings.pix_gateway_id) : ""}
-                  onValueChange={(v) => updatePayment("pix_gateway_id", v ? Number(v) : null)}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Selecione a gateway" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeGateways.map((g) => (
-                      <SelectItem key={g.id} value={String(g.id)}>
-                        {GATEWAY_LABELS[g.provider] ?? g.provider}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+              );
+            })()}
 
-            {/* Cartão */}
-            <div className="space-y-3 rounded-lg border border-border/50 p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4 text-blue-500" />
-                  <Label className="text-xs font-semibold">Cartão</Label>
+            {/* ── Cartão ── */}
+            {(() => {
+              const listKey: GatewayListKey = "card_gateway_ids";
+              const enabled = paymentSettings.card_enabled;
+              const ids = paymentSettings.card_gateway_ids;
+              const available = getAvailableGateways(listKey);
+              return (
+                <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm font-semibold">Cartão de Crédito</span>
+                    </div>
+                    <Switch
+                      checked={enabled}
+                      onCheckedChange={(v) => updatePayment("card_enabled", v)}
+                    />
+                  </div>
+                  {enabled && (
+                    <>
+                      {ids.length === 0 && (
+                        <p className="text-[11px] text-muted-foreground italic">Nenhuma gateway selecionada</p>
+                      )}
+                      <div className="space-y-1.5">
+                        {ids.map((gwId, idx) => {
+                          const gw = gateways.find((g) => g.id === gwId);
+                          return (
+                            <div key={gwId} className="flex items-center gap-1.5 rounded-md border border-border/40 bg-card px-2.5 py-1.5">
+                              <span className="flex-1 text-xs font-medium truncate">
+                                {gw ? (GATEWAY_LABELS[gw.provider] ?? gw.provider) : `#${gwId}`}
+                              </span>
+                              <Badge variant={idx === 0 ? "success" : "secondary"} className="text-[9px] px-1.5 py-0 h-4 shrink-0">
+                                {idx === 0 ? "Principal" : `Fallback ${idx}`}
+                              </Badge>
+                              <button onClick={() => moveGatewayInList(listKey, idx, "up")} disabled={idx === 0} className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors" title="Subir">
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => moveGatewayInList(listKey, idx, "down")} disabled={idx === ids.length - 1} className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors" title="Descer">
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => removeGatewayFromList(listKey, gwId)} className="p-0.5 text-destructive hover:text-destructive/80 transition-colors" title="Remover">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {available.length > 0 && (
+                        <Select onValueChange={(v) => addGatewayToList(listKey, Number(v))}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="+ Adicionar fallback" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {available.map((g) => (
+                              <SelectItem key={g.id} value={String(g.id)}>
+                                {GATEWAY_LABELS[g.provider] ?? g.provider}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </>
+                  )}
                 </div>
-                <Switch
-                  checked={paymentSettings.card_enabled}
-                  onCheckedChange={(v) => updatePayment("card_enabled", v)}
-                />
-              </div>
-              {paymentSettings.card_enabled && (
-                <Select
-                  value={paymentSettings.card_gateway_id ? String(paymentSettings.card_gateway_id) : ""}
-                  onValueChange={(v) => updatePayment("card_gateway_id", v ? Number(v) : null)}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Selecione a gateway" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeGateways.map((g) => (
-                      <SelectItem key={g.id} value={String(g.id)}>
-                        {GATEWAY_LABELS[g.provider] ?? g.provider}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+              );
+            })()}
 
-            {/* Boleto */}
-            <div className="space-y-3 rounded-lg border border-border/50 p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Barcode className="h-4 w-4 text-amber-500" />
-                  <Label className="text-xs font-semibold">Boleto</Label>
+            {/* ── Boleto ── */}
+            {(() => {
+              const listKey: GatewayListKey = "boleto_gateway_ids";
+              const enabled = paymentSettings.boleto_enabled;
+              const ids = paymentSettings.boleto_gateway_ids;
+              const available = getAvailableGateways(listKey);
+              return (
+                <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Barcode className="h-4 w-4 text-amber-500" />
+                      <span className="text-sm font-semibold">Boleto</span>
+                    </div>
+                    <Switch
+                      checked={enabled}
+                      onCheckedChange={(v) => updatePayment("boleto_enabled", v)}
+                    />
+                  </div>
+                  {enabled && (
+                    <>
+                      {ids.length === 0 && (
+                        <p className="text-[11px] text-muted-foreground italic">Nenhuma gateway selecionada</p>
+                      )}
+                      <div className="space-y-1.5">
+                        {ids.map((gwId, idx) => {
+                          const gw = gateways.find((g) => g.id === gwId);
+                          return (
+                            <div key={gwId} className="flex items-center gap-1.5 rounded-md border border-border/40 bg-card px-2.5 py-1.5">
+                              <span className="flex-1 text-xs font-medium truncate">
+                                {gw ? (GATEWAY_LABELS[gw.provider] ?? gw.provider) : `#${gwId}`}
+                              </span>
+                              <Badge variant={idx === 0 ? "success" : "secondary"} className="text-[9px] px-1.5 py-0 h-4 shrink-0">
+                                {idx === 0 ? "Principal" : `Fallback ${idx}`}
+                              </Badge>
+                              <button onClick={() => moveGatewayInList(listKey, idx, "up")} disabled={idx === 0} className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors" title="Subir">
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => moveGatewayInList(listKey, idx, "down")} disabled={idx === ids.length - 1} className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors" title="Descer">
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => removeGatewayFromList(listKey, gwId)} className="p-0.5 text-destructive hover:text-destructive/80 transition-colors" title="Remover">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {available.length > 0 && (
+                        <Select onValueChange={(v) => addGatewayToList(listKey, Number(v))}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="+ Adicionar fallback" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {available.map((g) => (
+                              <SelectItem key={g.id} value={String(g.id)}>
+                                {GATEWAY_LABELS[g.provider] ?? g.provider}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </>
+                  )}
                 </div>
-                <Switch
-                  checked={paymentSettings.boleto_enabled}
-                  onCheckedChange={(v) => updatePayment("boleto_enabled", v)}
-                />
-              </div>
-              {paymentSettings.boleto_enabled && (
-                <Select
-                  value={paymentSettings.boleto_gateway_id ? String(paymentSettings.boleto_gateway_id) : ""}
-                  onValueChange={(v) => updatePayment("boleto_gateway_id", v ? Number(v) : null)}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Selecione a gateway" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeGateways.map((g) => (
-                      <SelectItem key={g.id} value={String(g.id)}>
-                        {GATEWAY_LABELS[g.provider] ?? g.provider}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+              );
+            })()}
           </div>
 
           {activeGateways.length === 0 && (

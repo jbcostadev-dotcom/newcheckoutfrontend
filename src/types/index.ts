@@ -164,10 +164,13 @@ export interface CheckoutSettings {
   social_proofs_enabled?: boolean;
   pix_enabled?: boolean;
   pix_gateway_id?: number | null;
+  pix_gateway_ids?: number[];
   card_enabled?: boolean;
   card_gateway_id?: number | null;
+  card_gateway_ids?: number[];
   boleto_enabled?: boolean;
   boleto_gateway_id?: number | null;
+  boleto_gateway_ids?: number[];
   default_payment_method?: "credit_card" | "pix" | "boleto";
 }
 
