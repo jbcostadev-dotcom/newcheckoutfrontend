@@ -530,7 +530,12 @@ export default function CheckoutCustomizationPage() {
       if (hasImages) {
         const formData = new FormData();
         Object.entries(payload).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
+          if (value === undefined || value === null) return;
+          // Laravel 12 boolean rule only accepts true/false/0/1/'0'/'1'.
+          // FormData serializes everything as string, so send booleans as '1'/'0'.
+          if (typeof value === "boolean") {
+            formData.append(key, value ? "1" : "0");
+          } else {
             formData.append(key, String(value));
           }
         });
