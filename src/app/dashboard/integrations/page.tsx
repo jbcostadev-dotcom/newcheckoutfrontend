@@ -7,8 +7,6 @@ import {
   Plug,
   Store as ShopifyIcon,
   RefreshCw,
-  MessageSquare,
-  Mail,
   ExternalLink,
   HelpCircle,
   BookOpen,
@@ -681,53 +679,7 @@ export default function IntegrationsPage() {
           </Card>
         )}
 
-        {/* WhatsApp — Placeholder */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/15">
-                <MessageSquare className="h-5 w-5 text-green-500" />
-              </div>
-              <div>
-                <CardTitle className="text-base">WhatsApp</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Envie notificações de pedido via WhatsApp.
-                </p>
-              </div>
-            </div>
-            <Badge variant="outline">Em breve</Badge>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              A integração com WhatsApp via Evolution API permitirá envio automático de
-              confirmações e atualizações de pedido.
-            </p>
-          </CardContent>
-        </Card>
 
-        {/* SMTP — Placeholder */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15">
-                <Mail className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <CardTitle className="text-base">SMTP Personalizado</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Use seu próprio servidor de e-mail para notificações.
-                </p>
-              </div>
-            </div>
-            <Badge variant="outline">Em breve</Badge>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Configure credenciais SMTP para enviar e-mails de confirmação de pedido
-              usando seu próprio domínio e servidor.
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </>
   );
