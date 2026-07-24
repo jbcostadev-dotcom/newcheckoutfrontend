@@ -562,3 +562,98 @@ export const ABANDONED_CART_REASON_LABEL: Record<AbandonedCartReason, string> = 
   pix_expired: "PIX expirou",
   boleto_expired: "Boleto expirou",
 };
+
+// ── WhatsApp ───────────────────────────────────────────────────────
+
+export type WhatsappChipStatus =
+  | "disconnected"
+  | "starting"
+  | "qr_ready"
+  | "connected"
+  | "failed";
+
+export interface WhatsappChip {
+  id: number;
+  store_id: number;
+  instance_name: string;
+  instance_key?: string | null;
+  session_name?: string | null;
+  status: WhatsappChipStatus | string;
+  phone_number?: string | null;
+  qr_code_url?: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const WHATSAPP_CHIP_STATUS_LABEL: Record<string, string> = {
+  disconnected: "Desconectado",
+  starting: "Iniciando",
+  qr_ready: "Aguardando QR",
+  connected: "Conectado",
+  failed: "Falhou",
+};
+
+export type WhatsappTemplateEvent =
+  | "payment_pending"
+  | "payment_approved"
+  | "payment_refused"
+  | "pix_unpaid"
+  | "pix_expired"
+  | "cart_abandoned";
+
+export interface WhatsappTemplate {
+  id: number;
+  store_id: number;
+  event: WhatsappTemplateEvent | string;
+  name: string;
+  message?: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface WhatsappTemplateFormData {
+  event: WhatsappTemplateEvent;
+  name: string;
+  message: string;
+  is_active: boolean;
+}
+
+export const WHATSAPP_EVENT_LABEL: Record<string, string> = {
+  payment_pending: "Pagamento pendente",
+  payment_approved: "Pagamento aprovado",
+  payment_refused: "Pagamento recusado",
+  pix_unpaid: "PIX não pago",
+  pix_expired: "PIX expirado",
+  cart_abandoned: "Carrinho abandonado",
+};
+
+export const WHATSAPP_EVENT_DESCRIPTION: Record<string, string> = {
+  payment_pending:
+    "Disparado quando o cliente gera o Pix/Boleto e o pagamento ainda está pendente.",
+  payment_approved:
+    "Disparado após o cliente efetuar a compra com cartão, Pix ou boleto.",
+  payment_refused: "Disparado quando o pagamento via cartão é recusado.",
+  pix_unpaid:
+    "Recuperação: o cliente saiu da tela do checkout sem pagar o Pix (lembrete).",
+  pix_expired: "Recuperação: o Pix expirou após 30 minutos.",
+  cart_abandoned:
+    "Recuperação: o cliente saiu do checkout sem gerar/tentar nenhum método de pagamento.",
+};
+
+export interface WhatsappLog {
+  id: number;
+  store_id: number;
+  whatsapp_instance_id?: number | null;
+  whatsapp_template_id?: number | null;
+  event?: WhatsappTemplateEvent | string | null;
+  context_key?: string | null;
+  phone?: string | null;
+  message?: string | null;
+  status: "sent" | "failed" | string;
+  error?: string | null;
+  created_at: string;
+  template?: Pick<WhatsappTemplate, "id" | "name" | "event"> | null;
+  instance?: Pick<WhatsappChip, "id" | "instance_name"> | null;
+}

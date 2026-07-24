@@ -23,6 +23,7 @@ import {
   Sparkles,
   TicketPercent,
   Zap,
+  MessageCircle,
 } from "lucide-react";
 
 import { cn, initials } from "@/lib/utils";
@@ -143,6 +144,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
         label: "Integrações",
         icon: Plug,
         match: (p) => p.startsWith("/dashboard/integrations"),
+      },
+      {
+        href: "/dashboard/whatsapp",
+        label: "WhatsApp",
+        icon: MessageCircle,
+        match: (p) => p.startsWith("/dashboard/whatsapp"),
       },
       {
         href: "/dashboard/domains",
