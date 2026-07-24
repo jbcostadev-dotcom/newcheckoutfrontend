@@ -369,6 +369,55 @@ export interface OrderBumpFormData {
   is_active: boolean;
 }
 
+export type UpsellDiscountType = "fixed" | "percent";
+export type UpsellScope = "any" | "specific";
+
+export interface Upsell {
+  id: number;
+  store_id: number;
+  name: string;
+  product_id: number;
+  discount_value: number;
+  discount_type: UpsellDiscountType;
+  scope: UpsellScope;
+  target_product_id?: number | null;
+  show_credit_card: boolean;
+  show_pix: boolean;
+  show_boleto: boolean;
+  offer_title: string;
+  offer_message?: string | null;
+  bg_color: string;
+  border_color: string;
+  button_color: string;
+  button_text_color: string;
+  button_label: string;
+  is_active: boolean;
+  product?: Pick<Product, "id" | "name" | "price" | "image_url"> | null;
+  target_product?: Pick<Product, "id" | "name" | "price"> | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface UpsellFormData {
+  name: string;
+  product_id: number;
+  discount_value: number;
+  discount_type: UpsellDiscountType;
+  scope: UpsellScope;
+  target_product_id?: number | null;
+  show_credit_card: boolean;
+  show_pix: boolean;
+  show_boleto: boolean;
+  offer_title: string;
+  offer_message?: string | null;
+  bg_color: string;
+  border_color: string;
+  button_color: string;
+  button_text_color: string;
+  button_label: string;
+  is_active: boolean;
+}
+
 export type CouponDiscountType = "fixed" | "percent";
 export type CouponStatus = "active" | "inactive";
 
