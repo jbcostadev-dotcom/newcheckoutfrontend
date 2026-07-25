@@ -24,6 +24,8 @@ import {
   TicketPercent,
   Zap,
   MessageCircle,
+  LayoutGrid,
+  Mail,
 } from "lucide-react";
 
 import { cn, initials } from "@/lib/utils";
@@ -146,10 +148,22 @@ const NAV: { section: string; items: NavItem[] }[] = [
         match: (p) => p.startsWith("/dashboard/integrations"),
       },
       {
+        href: "/dashboard/apps",
+        label: "Apps",
+        icon: LayoutGrid,
+        match: (p) => p.startsWith("/dashboard/apps"),
+      },
+      {
         href: "/dashboard/whatsapp",
         label: "WhatsApp",
         icon: MessageCircle,
         match: (p) => p.startsWith("/dashboard/whatsapp"),
+      },
+      {
+        href: "/dashboard/email",
+        label: "E-mail",
+        icon: Mail,
+        match: (p) => p.startsWith("/dashboard/email"),
       },
       {
         href: "/dashboard/domains",

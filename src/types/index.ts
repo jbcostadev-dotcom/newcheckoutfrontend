@@ -657,3 +657,102 @@ export interface WhatsappLog {
   template?: Pick<WhatsappTemplate, "id" | "name" | "event"> | null;
   instance?: Pick<WhatsappChip, "id" | "instance_name"> | null;
 }
+
+// ── E-mail ─────────────────────────────────────────────────────────
+
+export type SmtpEncryption = "tls" | "ssl" | "none";
+
+export interface SmtpSetting {
+  id: number;
+  store_id: number;
+  name?: string | null;
+  host: string;
+  port: number | string;
+  username: string;
+  encryption?: SmtpEncryption | string | null;
+  from_email?: string | null;
+  from_name?: string | null;
+  is_active: boolean;
+  has_password?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SmtpSettingFormData {
+  name: string;
+  host: string;
+  port: string;
+  username: string;
+  password: string;
+  encryption: SmtpEncryption;
+  from_email: string;
+  from_name: string;
+  is_active: boolean;
+}
+
+export type EmailTemplateEvent =
+  | "payment_pending"
+  | "payment_approved"
+  | "payment_refused"
+  | "pix_unpaid"
+  | "pix_expired"
+  | "cart_abandoned";
+
+export interface EmailTemplate {
+  id: number;
+  store_id: number;
+  event: EmailTemplateEvent | string;
+  name: string;
+  subject?: string | null;
+  body_html?: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface EmailTemplateFormData {
+  event: EmailTemplateEvent;
+  name: string;
+  subject: string;
+  body_html: string;
+  is_active: boolean;
+}
+
+export const EMAIL_EVENT_LABEL: Record<string, string> = {
+  payment_pending: "Pagamento pendente",
+  payment_approved: "Pagamento aprovado",
+  payment_refused: "Pagamento recusado",
+  pix_unpaid: "PIX não pago",
+  pix_expired: "PIX expirado",
+  cart_abandoned: "Carrinho abandonado",
+};
+
+export const EMAIL_EVENT_DESCRIPTION: Record<string, string> = {
+  payment_pending:
+    "Disparado quando o cliente gera o Pix/Boleto e o pagamento ainda está pendente.",
+  payment_approved:
+    "Disparado após o cliente efetuar a compra com cartão, Pix ou boleto.",
+  payment_refused: "Disparado quando o pagamento via cartão é recusado.",
+  pix_unpaid:
+    "Recuperação: o cliente saiu da tela do checkout sem pagar o Pix (lembrete).",
+  pix_expired: "Recuperação: o Pix expirou após 30 minutos.",
+  cart_abandoned:
+    "Recuperação: o cliente saiu do checkout sem gerar/tentar nenhum método de pagamento.",
+};
+
+export interface EmailLog {
+  id: number;
+  store_id: number;
+  smtp_setting_id?: number | null;
+  email_template_id?: number | null;
+  event?: EmailTemplateEvent | string | null;
+  context_key?: string | null;
+  email?: string | null;
+  subject?: string | null;
+  message?: string | null;
+  status: "sent" | "failed" | string;
+  error?: string | null;
+  created_at: string;
+  template?: Pick<EmailTemplate, "id" | "name" | "event"> | null;
+  smtp_setting?: Pick<SmtpSetting, "id" | "name" | "host"> | null;
+}
