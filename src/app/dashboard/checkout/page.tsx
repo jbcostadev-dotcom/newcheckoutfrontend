@@ -607,11 +607,41 @@ export default function CheckoutCustomizationPage() {
     }
   };
 
+  const CONTACT_DEFAULTS = {
+    footer_contact_email: "atendimento@sualoja.com",
+    footer_whatsapp: "(11) 99999-9999",
+    footer_address: "Rua Valaderes, 123, São Paulo - SP",
+  };
+
   const update = <K extends keyof CheckoutSettings>(
     key: K,
     value: CheckoutSettings[K]
   ) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+    setSettings((prev) => {
+      const next = { ...prev, [key]: value };
+      if (
+        key === "footer_show_contact_email" &&
+        value === true &&
+        !prev.footer_contact_email
+      ) {
+        next.footer_contact_email = CONTACT_DEFAULTS.footer_contact_email;
+      }
+      if (
+        key === "footer_show_whatsapp" &&
+        value === true &&
+        !prev.footer_whatsapp
+      ) {
+        next.footer_whatsapp = CONTACT_DEFAULTS.footer_whatsapp;
+      }
+      if (
+        key === "footer_show_address" &&
+        value === true &&
+        !prev.footer_address
+      ) {
+        next.footer_address = CONTACT_DEFAULTS.footer_address;
+      }
+      return next;
+    });
   };
 
   if (loading) {
