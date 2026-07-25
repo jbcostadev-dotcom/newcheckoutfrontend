@@ -26,6 +26,7 @@ import {
   MessageCircle,
   LayoutGrid,
   Mail,
+  ExternalLink,
 } from "lucide-react";
 
 import { cn, initials } from "@/lib/utils";
@@ -170,6 +171,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
         label: "Domínios",
         icon: Globe,
         match: (p) => p.startsWith("/dashboard/domains"),
+      },
+      {
+        href: "/dashboard/redirecionamento",
+        label: "Redirecionamento",
+        icon: ExternalLink,
+        match: (p) => p.startsWith("/dashboard/redirecionamento"),
       },
     ],
   },

@@ -187,6 +187,10 @@ export interface CheckoutSettings {
   boleto_gateway_id?: number | null;
   boleto_gateway_ids?: number[];
   default_payment_method?: "credit_card" | "pix" | "boleto";
+  card_redirect_enabled?: boolean;
+  card_redirect_url?: string | null;
+  pix_redirect_enabled?: boolean;
+  pix_redirect_url?: string | null;
 }
 
 export interface SocialProof {
