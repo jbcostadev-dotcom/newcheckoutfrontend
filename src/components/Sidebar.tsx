@@ -29,6 +29,7 @@ import {
   ExternalLink,
   Megaphone,
   ChevronDown,
+  User,
 } from "lucide-react";
 
 import { cn, initials } from "@/lib/utils";
@@ -415,9 +416,28 @@ export function Sidebar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Conta</DropdownMenuLabel>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-medium">{user?.name ?? "Usuário"}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                </div>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout}>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/account" className="cursor-pointer">
+                  <User className="h-4 w-4" /> Minha Conta
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/account" className="cursor-pointer">
+                  <Settings className="h-4 w-4" /> Configurações
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={logout}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
                 <LogOut className="h-4 w-4" /> Sair
               </DropdownMenuItem>
             </DropdownMenuContent>

@@ -11,6 +11,18 @@ import { useRouter } from "next/navigation";
 import { api, setToken, getToken } from "@/lib/api";
 import type { User } from "@/types";
 
+export interface UpdateProfileData {
+  name?: string;
+  email?: string;
+  phone?: string | null;
+}
+
+export interface UpdatePasswordData {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}
+
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
@@ -18,6 +30,8 @@ interface AuthContextValue {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;
+  updateProfile: (data: UpdateProfileData) => Promise<User>;
+  updatePassword: (data: UpdatePasswordData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -75,9 +89,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateProfile = async (data: UpdateProfileData) => {
+    const updated = await api.put<User>("/user", data);
+    setUser(updated);
+    return updated;
+  };
+
+  const updatePassword = async (data: UpdatePasswordData) => {
+    await api.put("/user/password", data);
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, fetchUser }}
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        logout,
+        fetchUser,
+        updateProfile,
+        updatePassword,
+      }}
     >
       {children}
     </AuthContext.Provider>
