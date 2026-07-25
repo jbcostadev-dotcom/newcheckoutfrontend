@@ -162,8 +162,11 @@ export interface CheckoutSettings {
   footer_show_cnpj?: boolean;
   footer_cnpj?: string | null;
   footer_show_contact_email?: boolean;
+  footer_contact_email?: string | null;
   footer_show_whatsapp?: boolean;
+  footer_whatsapp?: string | null;
   footer_show_address?: boolean;
+  footer_address?: string | null;
   footer_show_terms?: boolean;
   footer_terms_url?: string | null;
   footer_show_privacy_policy?: boolean;

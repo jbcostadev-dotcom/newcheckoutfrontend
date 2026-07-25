@@ -81,8 +81,11 @@ const DEFAULTS: CheckoutSettings = {
   footer_show_cnpj: false,
   footer_cnpj: null,
   footer_show_contact_email: false,
+  footer_contact_email: null,
   footer_show_whatsapp: false,
+  footer_whatsapp: null,
   footer_show_address: false,
+  footer_address: null,
   footer_show_terms: false,
   footer_terms_url: null,
   footer_show_privacy_policy: false,
@@ -122,6 +125,26 @@ const EMPTY_FORM: SocialProofForm = {
 };
 
 type DeviceMode = "desktop" | "mobile";
+
+function onlyDigits(value: string): string {
+  return value.replace(/\D+/g, "");
+}
+
+function maskCnpj(value: string): string {
+  const d = onlyDigits(value).slice(0, 14);
+  return d
+    .replace(/(\d{2})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
+function maskCelular(value: string): string {
+  const d = onlyDigits(value).slice(0, 11);
+  return d
+    .replace(/(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d{1,4})$/, "$1-$2");
+}
 
 const GOOGLE_FONTS = [
   "Inter",
@@ -435,8 +458,11 @@ export default function CheckoutCustomizationPage() {
           footer_show_cnpj: settings.footer_show_cnpj,
           footer_cnpj: settings.footer_cnpj,
           footer_show_contact_email: settings.footer_show_contact_email,
+          footer_contact_email: settings.footer_contact_email,
           footer_show_whatsapp: settings.footer_show_whatsapp,
+          footer_whatsapp: settings.footer_whatsapp,
           footer_show_address: settings.footer_show_address,
+          footer_address: settings.footer_address,
           footer_show_terms: settings.footer_show_terms,
           footer_terms_url: settings.footer_terms_url,
           footer_show_privacy_policy: settings.footer_show_privacy_policy,
@@ -501,8 +527,11 @@ export default function CheckoutCustomizationPage() {
       footer_show_cnpj: settings.footer_show_cnpj,
       footer_cnpj: settings.footer_cnpj,
       footer_show_contact_email: settings.footer_show_contact_email,
+      footer_contact_email: settings.footer_contact_email,
       footer_show_whatsapp: settings.footer_show_whatsapp,
+      footer_whatsapp: settings.footer_whatsapp,
       footer_show_address: settings.footer_show_address,
+      footer_address: settings.footer_address,
       footer_show_terms: settings.footer_show_terms,
       footer_terms_url: settings.footer_terms_url,
       footer_show_privacy_policy: settings.footer_show_privacy_policy,
@@ -999,7 +1028,7 @@ export default function CheckoutCustomizationPage() {
               onCheckedChange={(v) => update("footer_show_payment_methods", v)}
             />
             <ToggleRow
-              label="Exibir CNPJ/CPF"
+              label="Exibir CNPJ"
               checked={settings.footer_show_cnpj ?? false}
               onCheckedChange={(v) => update("footer_show_cnpj", v)}
             />
@@ -1007,7 +1036,7 @@ export default function CheckoutCustomizationPage() {
               <div className="pb-2">
                 <Input
                   value={settings.footer_cnpj ?? ""}
-                  onChange={(e) => update("footer_cnpj", e.target.value)}
+                  onChange={(e) => update("footer_cnpj", maskCnpj(e.target.value))}
                   placeholder="00.000.000/0000-00"
                   className="h-8 text-xs"
                 />
@@ -1018,16 +1047,46 @@ export default function CheckoutCustomizationPage() {
               checked={settings.footer_show_contact_email ?? false}
               onCheckedChange={(v) => update("footer_show_contact_email", v)}
             />
+            {(settings.footer_show_contact_email ?? false) && (
+              <div className="pb-2">
+                <Input
+                  value={settings.footer_contact_email ?? ""}
+                  onChange={(e) => update("footer_contact_email", e.target.value)}
+                  placeholder="contato@exemplo.com"
+                  className="h-8 text-xs"
+                />
+              </div>
+            )}
             <ToggleRow
               label="Exibir whatsapp"
               checked={settings.footer_show_whatsapp ?? false}
               onCheckedChange={(v) => update("footer_show_whatsapp", v)}
             />
+            {(settings.footer_show_whatsapp ?? false) && (
+              <div className="pb-2">
+                <Input
+                  value={settings.footer_whatsapp ?? ""}
+                  onChange={(e) => update("footer_whatsapp", maskCelular(e.target.value))}
+                  placeholder="(00) 00000-0000"
+                  className="h-8 text-xs"
+                />
+              </div>
+            )}
             <ToggleRow
               label="Exibir endereço"
               checked={settings.footer_show_address ?? false}
               onCheckedChange={(v) => update("footer_show_address", v)}
             />
+            {(settings.footer_show_address ?? false) && (
+              <div className="pb-2">
+                <Input
+                  value={settings.footer_address ?? ""}
+                  onChange={(e) => update("footer_address", e.target.value)}
+                  placeholder="Rua, número, cidade - UF"
+                  className="h-8 text-xs"
+                />
+              </div>
+            )}
             
             <ToggleRow
               label="Exibir termos de uso"
