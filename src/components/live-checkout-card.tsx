@@ -48,7 +48,7 @@ export function LiveCheckoutCard() {
 
   useEffect(() => {
     fetchSessions();
-    const interval = setInterval(fetchSessions, 5000);
+    const interval = setInterval(fetchSessions, 3000);
     return () => clearInterval(interval);
   }, [fetchSessions]);
 
