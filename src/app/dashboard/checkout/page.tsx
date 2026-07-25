@@ -238,8 +238,7 @@ export default function CheckoutCustomizationPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
-  const [pixLogoFile, setPixLogoFile] = useState<File | null>(null);
-  const [pixLogoPreview, setPixLogoPreview] = useState<string | null>(null);
+
 
   // Social Proofs state
   const [socialProofs, setSocialProofs] = useState<SocialProof[]>([]);
@@ -429,7 +428,7 @@ export default function CheckoutCustomizationPage() {
           scarcity_countdown_minutes: settings.scarcity_countdown_minutes,
           pix_confirmation_title: settings.pix_confirmation_title,
           pix_confirmation_message: settings.pix_confirmation_message,
-          pix_confirmation_logo: pixLogoPreview ?? settings.pix_confirmation_logo,
+          pix_confirmation_logo: settings.pix_confirmation_logo,
           footer_text: settings.footer_text,
           footer_show_store_name: settings.footer_show_store_name,
           footer_show_payment_methods: settings.footer_show_payment_methods,
@@ -462,7 +461,7 @@ export default function CheckoutCustomizationPage() {
       },
       "*"
     );
-  }, [settings, logoPreview, bannerPreview, pixLogoPreview]);
+  }, [settings, logoPreview, bannerPreview]);
 
   useEffect(() => {
     if (!previewUrl) return;
@@ -532,7 +531,7 @@ export default function CheckoutCustomizationPage() {
     setSaving(true);
     try {
       const payload = buildSettingsPayload();
-      const hasImages = logoFile || bannerFile || pixLogoFile;
+      const hasImages = logoFile || bannerFile;
 
       let saved: CheckoutSettings;
       if (hasImages) {
@@ -549,10 +548,8 @@ export default function CheckoutCustomizationPage() {
         });
         formData.append("logo_url", logoFile ? "__keep__" : (settings.logo_url ?? ""));
         formData.append("banner_url", bannerFile ? "__keep__" : (settings.banner_url ?? ""));
-        formData.append("pix_confirmation_logo", pixLogoFile ? "__keep__" : (settings.pix_confirmation_logo ?? ""));
         if (logoFile) formData.append("logo", logoFile);
         if (bannerFile) formData.append("banner", bannerFile);
-        if (pixLogoFile) formData.append("pix_confirmation_logo_file", pixLogoFile);
 
         saved = await api.put<CheckoutSettings>(`/stores/${selectedStore.id}/settings`, formData);
       } else {
@@ -560,7 +557,6 @@ export default function CheckoutCustomizationPage() {
           ...payload,
           logo_url: settings.logo_url,
           banner_url: settings.banner_url,
-          pix_confirmation_logo: settings.pix_confirmation_logo,
         });
       }
 
@@ -569,10 +565,8 @@ export default function CheckoutCustomizationPage() {
       // Reset file inputs and commit previews to saved URLs after successful save
       setLogoFile(null);
       setBannerFile(null);
-      setPixLogoFile(null);
       setLogoPreview(null);
       setBannerPreview(null);
-      setPixLogoPreview(null);
       toast.success("Configurações salvas!");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao salvar configurações.";
@@ -885,38 +879,6 @@ export default function CheckoutCustomizationPage() {
                 )}
               </>
             )}
-          </AccordionSection>
-
-          {/* Tela de confirmação do Pix */}
-          <AccordionSection title="Tela de confirmação do Pix">
-            <FieldRow label="Título">
-              <Input
-                value={settings.pix_confirmation_title ?? "Aguardando pagamento..."}
-                onChange={(e) => update("pix_confirmation_title", e.target.value)}
-                className="h-8 text-xs"
-              />
-            </FieldRow>
-            <FieldRow label="Mensagem">
-              <Textarea
-                value={settings.pix_confirmation_message ?? ""}
-                onChange={(e) => update("pix_confirmation_message", e.target.value)}
-                placeholder="Mensagem exibida abaixo do título..."
-                className="min-h-[60px] text-xs"
-              />
-            </FieldRow>
-            <FieldRow label="Logo">
-              <ImageUpload
-                value={pixLogoFile}
-                previewUrl={pixLogoPreview ?? settings.pix_confirmation_logo}
-                onChange={setPixLogoFile}
-                onPreviewChange={setPixLogoPreview}
-                onRemove={() => update("pix_confirmation_logo", null)}
-                label="Upload da logo do Pix"
-                recommendedSize="120x120 px (fundo transparente)"
-                placeholder="Clique para enviar a logo"
-                previewClassName="h-20 w-full"
-              />
-            </FieldRow>
           </AccordionSection>
 
           {/* Cores */}
