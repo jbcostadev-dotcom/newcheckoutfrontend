@@ -27,6 +27,8 @@ import {
   LayoutGrid,
   Mail,
   ExternalLink,
+  Megaphone,
+  ChevronDown,
 } from "lucide-react";
 
 import { cn, initials } from "@/lib/utils";
@@ -65,6 +67,7 @@ interface NavItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   match?: (path: string) => boolean;
+  children?: NavItem[];
 }
 
 const NAV: { section: string; items: NavItem[] }[] = [
@@ -104,6 +107,62 @@ const NAV: { section: string; items: NavItem[] }[] = [
     ],
   },
   {
+    section: "Marketing",
+    items: [
+      {
+        href: "/dashboard/marketing",
+        label: "Marketing",
+        icon: Megaphone,
+        match: (p) =>
+          p === "/dashboard/marketing" ||
+          p.startsWith("/dashboard/order-bump") ||
+          p.startsWith("/dashboard/upsell") ||
+          p.startsWith("/dashboard/cupons") ||
+          p.startsWith("/dashboard/redirecionamento") ||
+          p.startsWith("/dashboard/email") ||
+          p.startsWith("/dashboard/whatsapp"),
+        children: [
+          {
+            href: "/dashboard/order-bump",
+            label: "Orderbump",
+            icon: Sparkles,
+            match: (p) => p.startsWith("/dashboard/order-bump"),
+          },
+          {
+            href: "/dashboard/upsell",
+            label: "Upssell",
+            icon: Zap,
+            match: (p) => p.startsWith("/dashboard/upsell"),
+          },
+          {
+            href: "/dashboard/cupons",
+            label: "Descontos",
+            icon: TicketPercent,
+            match: (p) => p.startsWith("/dashboard/cupons"),
+          },
+          {
+            href: "/dashboard/redirecionamento",
+            label: "Página de redirecionamento",
+            icon: ExternalLink,
+            match: (p) => p.startsWith("/dashboard/redirecionamento"),
+          },
+          {
+            href: "/dashboard/email",
+            label: "Email",
+            icon: Mail,
+            match: (p) => p.startsWith("/dashboard/email"),
+          },
+          {
+            href: "/dashboard/whatsapp",
+            label: "WhatsApp",
+            icon: MessageCircle,
+            match: (p) => p.startsWith("/dashboard/whatsapp"),
+          },
+        ],
+      },
+    ],
+  },
+  {
     section: "Configurar",
     items: [
       {
@@ -111,24 +170,6 @@ const NAV: { section: string; items: NavItem[] }[] = [
         label: "Checkout",
         icon: Palette,
         match: (p) => p.startsWith("/dashboard/checkout"),
-      },
-      {
-        href: "/dashboard/order-bump",
-        label: "Order Bump",
-        icon: Sparkles,
-        match: (p) => p.startsWith("/dashboard/order-bump"),
-      },
-      {
-        href: "/dashboard/upsell",
-        label: "Upsell",
-        icon: Zap,
-        match: (p) => p.startsWith("/dashboard/upsell"),
-      },
-      {
-        href: "/dashboard/cupons",
-        label: "Cupons",
-        icon: TicketPercent,
-        match: (p) => p.startsWith("/dashboard/cupons"),
       },
       {
         href: "/dashboard/fretes",
@@ -155,28 +196,10 @@ const NAV: { section: string; items: NavItem[] }[] = [
         match: (p) => p.startsWith("/dashboard/apps"),
       },
       {
-        href: "/dashboard/whatsapp",
-        label: "WhatsApp",
-        icon: MessageCircle,
-        match: (p) => p.startsWith("/dashboard/whatsapp"),
-      },
-      {
-        href: "/dashboard/email",
-        label: "E-mail",
-        icon: Mail,
-        match: (p) => p.startsWith("/dashboard/email"),
-      },
-      {
         href: "/dashboard/domains",
         label: "Domínios",
         icon: Globe,
         match: (p) => p.startsWith("/dashboard/domains"),
-      },
-      {
-        href: "/dashboard/redirecionamento",
-        label: "Redirecionamento",
-        icon: ExternalLink,
-        match: (p) => p.startsWith("/dashboard/redirecionamento"),
       },
     ],
   },
@@ -202,6 +225,9 @@ export function Sidebar() {
   const [name, setName] = useState("");
   const [type, setType] = useState<"Shopify" | "Landing Page">("Shopify");
   const [saving, setSaving] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(
+    () => new Set(["/dashboard/marketing"])
+  );
 
   const handleCreate = async () => {
     if (!name.trim()) return;
@@ -217,6 +243,21 @@ export function Sidebar() {
 
   const isActive = (item: NavItem) =>
     item.match ? item.match(pathname) : pathname.startsWith(item.href);
+
+  const hasActiveChild = (item: NavItem) =>
+    item.children?.some((child) => isActive(child)) ?? false;
+
+  const toggleExpanded = (href: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(href)) {
+        next.delete(href);
+      } else {
+        next.add(href);
+      }
+      return next;
+    });
+  };
 
   return (
     <>
@@ -280,21 +321,72 @@ export function Sidebar() {
               </p>
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const active = isActive(item);
+                const active = isActive(item) || hasActiveChild(item);
+                const isExpanded = expanded.has(item.href);
+                const hasChildren = !!item.children?.length;
+
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                      active
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  <div key={item.href}>
+                    {hasChildren ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded(item.href)}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          active
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                        )}
+                      >
+                        <span className="flex items-center gap-3">
+                          <Icon className="h-4 w-4" />
+                          {item.label}
+                        </span>
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 transition-transform",
+                            isExpanded && "rotate-180"
+                          )}
+                        />
+                      </button>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          active
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </Link>
                     )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
+                    {hasChildren && isExpanded && (
+                      <div className="mt-1 space-y-1 border-l border-border pl-6 ml-3">
+                        {item.children!.map((child) => {
+                          const ChildIcon = child.icon;
+                          const childActive = isActive(child);
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              className={cn(
+                                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                                childActive
+                                  ? "bg-primary/10 text-primary"
+                                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                              )}
+                            >
+                              <ChildIcon className="h-4 w-4" />
+                              {child.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
