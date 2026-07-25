@@ -210,6 +210,35 @@ export interface Metrics {
   recent_orders?: Order[];
 }
 
+export interface LiveCheckoutItem {
+  name: string;
+  qty: number;
+  unit_price: number;
+}
+
+export type LiveCheckoutStep = "dados" | "entrega" | "pagamento";
+
+export interface LiveCheckoutSession {
+  store_id: number;
+  session_id: string;
+  domain: string;
+  step: LiveCheckoutStep;
+  customer_name: string | null;
+  customer_email: string | null;
+  cep: string | null;
+  payment_method: PaymentMethod | null;
+  total: number;
+  items: LiveCheckoutItem[];
+  last_seen_at: string;
+  ip_address?: string | null;
+  user_agent?: string | null;
+}
+
+export interface LiveCheckoutResponse {
+  sessions: LiveCheckoutSession[];
+  count: number;
+}
+
 export type DomainStatus =
   | "pending"
   | "dns_verified"

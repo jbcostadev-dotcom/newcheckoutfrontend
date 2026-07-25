@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import LiveCheckoutCard from "@/components/live-checkout-card";
 
 function statusVariant(status: OrderStatus | string) {
   switch (status) {
@@ -110,6 +111,9 @@ export default function DashboardOverview() {
           accent="text-foreground"
         />
       </div>
+
+      {/* Live checkout */}
+      <LiveCheckoutCard />
 
       {/* Recent orders */}
       <Card>
