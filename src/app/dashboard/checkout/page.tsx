@@ -830,7 +830,7 @@ export default function CheckoutCustomizationPage() {
               <img
                 src={bannerPreview ?? settings.banner_url ?? ""}
                 alt="Banner"
-                className="w-full rounded-md object-cover"
+                className="w-full rounded-md object-contain bg-card/50"
                 style={{
                   height:
                     settings.banner_height === "sm"
