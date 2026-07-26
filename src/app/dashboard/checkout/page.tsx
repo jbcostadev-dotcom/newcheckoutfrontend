@@ -831,14 +831,6 @@ export default function CheckoutCustomizationPage() {
                 src={bannerPreview ?? settings.banner_url ?? ""}
                 alt="Banner"
                 className="w-full rounded-md object-contain bg-card/50"
-                style={{
-                  height:
-                    settings.banner_height === "sm"
-                      ? 60
-                      : settings.banner_height === "lg"
-                      ? 160
-                      : 100,
-                }}
               />
             )}
           </AccordionSection>
