@@ -13,9 +13,6 @@ import {
   Settings,
   Store as StoreIcon,
   Plus,
-  Moon,
-  Sun,
-  LogOut,
   ShoppingCart,
   Globe,
   Truck,
@@ -29,12 +26,10 @@ import {
   ExternalLink,
   Megaphone,
   ChevronDown,
-  User,
 } from "lucide-react";
 
-import { cn, initials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/contexts/StoreContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,15 +48,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 interface NavItem {
   href: string;
@@ -220,15 +206,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { stores, selectedStore, setSelectedStoreById, addStore } = useStore();
-  const { user, logout } = useAuth();
 
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState<"Shopify" | "Landing Page">("Shopify");
   const [saving, setSaving] = useState(false);
-  const [expanded, setExpanded] = useState<Set<string>>(
-    () => new Set(["/dashboard/marketing"])
-  );
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
   const handleCreate = async () => {
     if (!name.trim()) return;
@@ -393,57 +376,6 @@ export function Sidebar() {
             </div>
           ))}
         </nav>
-
-        {/* User footer */}
-        <div className="flex items-center gap-2 border-t p-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="flex-1 justify-start gap-2 px-2"
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
-                  {initials(user?.name)}
-                </span>
-                <span className="flex flex-col items-start leading-none">
-                  <span className="max-w-[120px] truncate text-xs font-medium">
-                    {user?.name ?? "Usuário"}
-                  </span>
-                  <span className="max-w-[120px] truncate text-[10px] text-muted-foreground">
-                    {user?.email}
-                  </span>
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium">{user?.name ?? "Usuário"}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email}</p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/account" className="cursor-pointer">
-                  <User className="h-4 w-4" /> Minha Conta
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/account" className="cursor-pointer">
-                  <Settings className="h-4 w-4" /> Configurações
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={logout}
-                className="cursor-pointer text-destructive focus:text-destructive"
-              >
-                <LogOut className="h-4 w-4" /> Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <ThemeToggle />
-        </div>
       </aside>
 
       {/* Create store dialog */}
