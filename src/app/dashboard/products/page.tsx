@@ -37,6 +37,27 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 const PAGE_SIZE = 25;
 
+interface CheckoutUrlStore {
+  id: string | number;
+  custom_domain?: string | null;
+  subdomain?: string | null;
+}
+
+function buildCheckoutUrl(store: CheckoutUrlStore, productIds: (string | number)[]): string | null {
+  const customDomain = store.custom_domain;
+  const checkoutAppDomain =
+    process.env.NEXT_PUBLIC_CHECKOUT_APP_DOMAIN ||
+    `checkout.${process.env.NEXT_PUBLIC_CHECKOUT_BASE_DOMAIN || "bersenker.shop"}`;
+
+  const ids = productIds.map(String).join(",");
+
+  if (customDomain) {
+    return `https://${customDomain}/checkout?products=${ids}`;
+  }
+
+  return `https://${checkoutAppDomain}/store/${store.id}/checkout?products=${ids}`;
+}
+
 export default function ProductsPage() {
   const { selectedStore } = useStore();
   const router = useRouter();
@@ -216,36 +237,22 @@ export default function ProductsPage() {
   };
 
   const handleCopyProductLink = (product: Product) => {
-    copyUrl(product.checkout_url ?? "");
+    if (!selectedStore) {
+      toast.error("Selecione uma loja para copiar o link.");
+      return;
+    }
+    const url = buildCheckoutUrl(selectedStore, [product.id]);
+    copyUrl(url);
   };
 
   const handleCopyCartLink = () => {
     if (selectedIds.length === 0) return;
-    const base = selectedIds[0];
-    let url: string | null = null;
-
-    const product = products.find((p) => p.id === base);
-    if (product?.checkout_url) {
-      url = product.checkout_url.replace(
-        /products=\d+/,
-        `products=${selectedIds.join(",")}`
-      );
+    if (!selectedStore) {
+      toast.error("Selecione uma loja para copiar o link.");
+      return;
     }
 
-    // Fallback: monta manualmente a partir do domínio da loja (raro — backend gerou).
-    if (!url) {
-      const subdomain = selectedStore?.subdomain;
-      const customDomain = selectedStore?.custom_domain;
-      const checkoutAppDomain =
-        process.env.NEXT_PUBLIC_CHECKOUT_APP_DOMAIN ||
-        `checkout.${process.env.NEXT_PUBLIC_CHECKOUT_BASE_DOMAIN || "bersenker.shop"}`;
-      if (customDomain) {
-        url = `https://${customDomain}/checkout?products=${selectedIds.join(",")}`;
-      } else if (subdomain) {
-        url = `https://${checkoutAppDomain}/${subdomain}/checkout?products=${selectedIds.join(",")}`;
-      }
-    }
-
+    const url = buildCheckoutUrl(selectedStore, selectedIds);
     if (!url) {
       toast.error("Não foi possível montar o link do carrinho.");
       return;

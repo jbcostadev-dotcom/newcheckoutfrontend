@@ -407,14 +407,10 @@ export default function CheckoutCustomizationPage() {
       process.env.NEXT_PUBLIC_CHECKOUT_APP_DOMAIN ||
       `checkout.${process.env.NEXT_PUBLIC_CHECKOUT_BASE_DOMAIN || "bersenker.shop"}`;
     const customDomain = selectedStore.custom_domain;
-    const subdomain = selectedStore.subdomain;
     if (customDomain) {
       return `https://${customDomain}/checkout?preview=1`;
     }
-    if (subdomain) {
-      return `https://${checkoutAppDomain}/${subdomain}/checkout?preview=1`;
-    }
-    return null;
+    return `https://${checkoutAppDomain}/store/${selectedStore.id}/checkout?preview=1`;
   })();
 
   const postSettingsToIframe = useCallback(() => {

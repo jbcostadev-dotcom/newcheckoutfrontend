@@ -158,11 +158,12 @@ export default function DomainsPage() {
     }
   };
 
-  const subdomain = selectedStore?.subdomain;
   const checkoutAppDomain =
     process.env.NEXT_PUBLIC_CHECKOUT_APP_DOMAIN ||
     `checkout.${process.env.NEXT_PUBLIC_CHECKOUT_BASE_DOMAIN || "bersenker.shop"}`;
-  const checkoutUrl = subdomain ? `https://${checkoutAppDomain}/${subdomain}` : null;
+  const checkoutUrl = selectedStore
+    ? `https://${checkoutAppDomain}/store/${selectedStore.id}/checkout`
+    : null;
 
   return (
     <>
