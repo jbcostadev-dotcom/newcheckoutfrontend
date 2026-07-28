@@ -43,7 +43,7 @@ interface CheckoutUrlStore {
   subdomain?: string | null;
 }
 
-function buildCheckoutUrl(store: CheckoutUrlStore, productIds: (string | number)[]): string | null {
+function buildCheckoutUrl(store: CheckoutUrlStore, productIds: (string | number)[]): string {
   const customDomain = store.custom_domain;
   const checkoutAppDomain =
     process.env.NEXT_PUBLIC_CHECKOUT_APP_DOMAIN ||
