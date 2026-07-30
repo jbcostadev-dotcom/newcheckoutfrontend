@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
+import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,10 +134,9 @@ const APPS: AppDefinition[] = [
     category: "tracking",
     color: "#7C3AED",
     bgColor: "#EDE9FE",
-    docsUrl: "https://utmify.com.br",
+    docsUrl: "https://docs.utmify.com.br/envio-de-vendas",
     fields: [
-      { key: "token", label: "Token da API", type: "password" },
-      { key: "pixel_id", label: "Pixel ID (opcional)", placeholder: "ID do pixel/acompanhamento" },
+      { key: "token", label: "Credencial de API (x-api-token)", type: "password", placeholder: "Cole aqui sua credencial de API da Utmify" },
     ],
   },
   {
@@ -373,6 +373,10 @@ export default function AppsPage() {
   const [activeApp, setActiveApp] = useState<AppId | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Estado do Utmify, salvo no backend (não em localStorage como os demais apps).
+  const [utmify, setUtmify] = useState({ enabled: false, hasToken: false, token: "" });
+  const [utmifySaving, setUtmifySaving] = useState(false);
+
   const activeDefinition = useMemo(
     () => APPS.find((a) => a.id === activeApp) ?? null,
     [activeApp]
@@ -416,6 +420,24 @@ export default function AppsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStore]);
 
+  // Carrega o status da integração Utmify (sempre do backend).
+  useEffect(() => {
+    if (!selectedStore) return;
+    api
+      .get<{ enabled: boolean; has_token: boolean }>(`/stores/${selectedStore.id}/utmify`)
+      .then((data) => {
+        setUtmify((prev) => ({
+          enabled: data.enabled ?? false,
+          hasToken: data.has_token ?? false,
+          // Mantém o token em edição se já digitado; senão vazio.
+          token: prev.token && !data.has_token ? prev.token : "",
+        }));
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }, [selectedStore]);
+
   const persistConfig = (appId: AppId, config: AppConfig) => {
     const key = storageKey(selectedStore?.id, appId);
     if (key) {
@@ -434,6 +456,11 @@ export default function AppsPage() {
 
   const handleSaveActive = () => {
     if (!activeApp || !activeDefinition) return;
+    // Utmify é salvo no backend (credencial de API sensível).
+    if (activeApp === "utmify") {
+      handleSaveUtmify();
+      return;
+    }
     setSaving(true);
     // Simulate API call; in the future this should sync with the backend.
     setTimeout(() => {
@@ -442,6 +469,55 @@ export default function AppsPage() {
       setActiveApp(null);
       toast.success("Configurações salvas!");
     }, 400);
+  };
+
+  const handleSaveUtmify = async () => {
+    if (!selectedStore) return;
+    setUtmifySaving(true);
+    try {
+      const payload: Record<string, unknown> = { enabled: utmify.enabled };
+      const token = utmify.token.trim();
+      if (token) {
+        payload.api_token = token;
+      } else if (!utmify.hasToken) {
+        toast.error("Cole a credencial de API da Utmify.");
+        setUtmifySaving(false);
+        return;
+      }
+      const data = await api.put<{ enabled: boolean; has_token: boolean }>(
+        `/stores/${selectedStore.id}/utmify`,
+        payload
+      );
+      setUtmify((prev) => ({
+        enabled: data.enabled ?? prev.enabled,
+        hasToken: data.has_token ?? prev.hasToken,
+        token: "",
+      }));
+      toast.success("Credencial da Utmify salva!");
+      setActiveApp(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar a credencial da Utmify.");
+    } finally {
+      setUtmifySaving(false);
+    }
+  };
+
+  const handleToggleUtmify = async () => {
+    if (!selectedStore) return;
+    const nextEnabled = !utmify.enabled;
+    setUtmify((prev) => ({ ...prev, enabled: nextEnabled }));
+    try {
+      const data = await api.put<{ enabled: boolean; has_token: boolean }>(
+        `/stores/${selectedStore.id}/utmify`,
+        { enabled: nextEnabled }
+      );
+      setUtmify((prev) => ({ ...prev, enabled: data.enabled ?? prev.enabled }));
+      toast.success(nextEnabled ? "Utmify ativada." : "Utmify desativada.");
+    } catch (err) {
+      // Reverte em caso de erro.
+      setUtmify((prev) => ({ ...prev, enabled: !nextEnabled }));
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar Utmify.");
+    }
   };
 
   const updateValue = (appId: AppId, key: string, value: string) => {
@@ -489,8 +565,9 @@ export default function AppsPage() {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {appsByCategory[category]!.map((app) => {
                     const cfg = configs[app.id];
-                    const configured = isConfigured(app.id);
-                    const active = cfg?.enabled ?? false;
+                    const isUtmify = app.id === "utmify";
+                    const configured = isUtmify ? utmify.hasToken : isConfigured(app.id);
+                    const active = isUtmify ? utmify.enabled : (cfg?.enabled ?? false);
 
                     return (
                       <div
@@ -560,32 +637,57 @@ export default function AppsPage() {
                     </p>
                   </div>
                   <Switch
-                    checked={configs[activeDefinition.id].enabled}
-                    onCheckedChange={() => handleToggle(activeDefinition.id)}
+                    checked={
+                      activeDefinition.id === "utmify"
+                        ? utmify.enabled
+                        : configs[activeDefinition.id].enabled
+                    }
+                    onCheckedChange={() =>
+                      activeDefinition.id === "utmify"
+                        ? handleToggleUtmify()
+                        : handleToggle(activeDefinition.id)
+                    }
                   />
                 </div>
 
                 <div className="space-y-4">
-                  {activeDefinition.fields.map((field) => (
-                    <div key={field.key} className="space-y-1.5">
-                      <Label htmlFor={field.key}>{field.label}</Label>
-                      <Input
-                        id={field.key}
-                        type={field.type ?? "text"}
-                        placeholder={field.placeholder}
-                        value={configs[activeDefinition.id].values[field.key] ?? ""}
-                        onChange={(e) =>
-                          updateValue(activeDefinition.id, field.key, e.target.value)
-                        }
-                        autoComplete="off"
-                      />
-                      {field.helper && (
-                        <p className="text-xs text-muted-foreground">
-                          {field.helper}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                  {activeDefinition.fields.map((field) => {
+                    const isUtmify = activeDefinition.id === "utmify";
+                    const value = isUtmify
+                      ? utmify.token
+                      : configs[activeDefinition.id].values[field.key] ?? "";
+                    const placeholder =
+                      isUtmify && utmify.hasToken
+                        ? "Credencial já salva — cole uma nova para substituir"
+                        : field.placeholder;
+                    return (
+                      <div key={field.key} className="space-y-1.5">
+                        <Label htmlFor={field.key}>{field.label}</Label>
+                        <Input
+                          id={field.key}
+                          type={field.type ?? "text"}
+                          placeholder={placeholder}
+                          value={value}
+                          onChange={(e) =>
+                            isUtmify
+                              ? setUtmify((prev) => ({ ...prev, token: e.target.value }))
+                              : updateValue(activeDefinition.id, field.key, e.target.value)
+                          }
+                          autoComplete="off"
+                        />
+                        {field.helper && (
+                          <p className="text-xs text-muted-foreground">
+                            {field.helper}
+                          </p>
+                        )}
+                        {isUtmify && utmify.hasToken && (
+                          <p className="text-xs text-emerald-600">
+                            Credencial configurada. Deixe vazio para manter a atual.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {activeDefinition.docsUrl && (
@@ -605,12 +707,15 @@ export default function AppsPage() {
                 <Button
                   variant="outline"
                   onClick={() => setActiveApp(null)}
-                  disabled={saving}
+                  disabled={saving || utmifySaving}
                 >
                   <X className="mr-1.5 h-4 w-4" /> Cancelar
                 </Button>
-                <Button onClick={handleSaveActive} disabled={saving}>
-                  {saving ? (
+                <Button
+                  onClick={handleSaveActive}
+                  disabled={saving || utmifySaving}
+                >
+                  {saving || utmifySaving ? (
                     "Salvando..."
                   ) : (
                     <>
