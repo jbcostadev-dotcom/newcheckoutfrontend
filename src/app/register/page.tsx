@@ -6,6 +6,8 @@ import { ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 
 import { api } from "@/lib/api";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { GuestOnly } from "@/components/auth-guard";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +38,8 @@ export default function RegisterPage() {
   };
 
   return (
+    <AuthProvider>
+      <GuestOnly>
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="fixed right-4 top-4">
         <ThemeToggle />
@@ -111,5 +115,7 @@ export default function RegisterPage() {
         </CardContent>
       </Card>
     </div>
+      </GuestOnly>
+    </AuthProvider>
   );
 }

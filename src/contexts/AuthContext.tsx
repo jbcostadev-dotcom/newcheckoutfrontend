@@ -63,17 +63,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await api.post<{ token: string; user?: User }>("/login", {
-      email,
-      password,
-    });
-    setToken(res.token);
+    // auth: false evita enviar um token antigo e bater no 403 do backend
+    // (que proíbe login de quem já está autenticado).
+    const res = await api.post<{ token: string; access_token?: string; user?: User }>(
+      "/login",
+      { email, password },
+      { auth: false }
+    );
+    const token = res.token ?? res.access_token;
+    setToken(token);
     if (res.user) setUser(res.user);
     router.push("/dashboard");
   };
 
   const register = async (name: string, email: string, password: string) => {
-    await api.post("/register", { name, email, password });
+    await api.post("/register", { name, email, password }, { auth: false });
     router.push("/");
   };
 
