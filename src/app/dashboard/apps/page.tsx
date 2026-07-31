@@ -21,8 +21,16 @@ import { PageHeader } from "@/components/page-header";
 import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -72,9 +80,12 @@ type AppId =
 interface AppField {
   key: string;
   label: string;
-  type?: "text" | "password" | "number";
+  type?: "text" | "password" | "number" | "select" | "checkbox";
   placeholder?: string;
   helper?: string;
+  required?: boolean;
+  options?: { label: string; value: string }[];
+  section?: string;
 }
 
 interface AppDefinition {
@@ -114,7 +125,119 @@ const APPS: AppDefinition[] = [
     category: "logistica",
     color: "#F59E0B",
     bgColor: "#FEF3C7",
-    fields: [{ key: "token", label: "Token de acesso", type: "password" }],
+    docsUrl: "https://docs.melhorenvio.com.br/docs/introducao-a-api",
+    fields: [
+      { key: "token", label: "Token de acesso", type: "password", required: true, section: "Credenciais" },
+      {
+        key: "remetente_nome",
+        label: "Nome do Remetente",
+        required: true,
+        section: "Informações Básicas",
+      },
+      {
+        key: "remetente_telefone",
+        label: "Telefone do Remetente",
+        required: true,
+        placeholder: "(00) 00000-0000",
+        section: "Informações Básicas",
+      },
+      {
+        key: "remetente_email",
+        label: "E-mail do Remetente",
+        required: true,
+        type: "text",
+        placeholder: "exemplo@email.com",
+        section: "Informações Básicas",
+      },
+      {
+        key: "remetente_cpf",
+        label: "CPF do Remetente",
+        required: true,
+        placeholder: "000.000.000-00",
+        section: "Informações Básicas",
+      },
+      {
+        key: "remetente_cnpj",
+        label: "CNPJ",
+        placeholder: "00.000.000/0000-00",
+        section: "Informações Básicas",
+      },
+      {
+        key: "remetente_ie",
+        label: "Inscrição estadual",
+        section: "Informações Básicas",
+      },
+      {
+        key: "remetente_cep",
+        label: "CEP do Remetente",
+        required: true,
+        placeholder: "00000-000",
+        section: "Informações Básicas",
+      },
+      {
+        key: "remetente_endereco",
+        label: "Endereço do Remetente",
+        required: true,
+        section: "Informações Básicas",
+      },
+      {
+        key: "remetente_numero",
+        label: "Número do Remetente",
+        required: true,
+        section: "Informações Básicas",
+      },
+      {
+        key: "remetente_complemento",
+        label: "Complemento do Remetente",
+        section: "Informações Básicas",
+      },
+      {
+        key: "remetente_bairro",
+        label: "Bairro do Remetente",
+        required: true,
+        section: "Informações Básicas",
+      },
+      {
+        key: "remetente_cidade",
+        label: "Cidade do Remetente",
+        required: true,
+        section: "Informações Básicas",
+      },
+      {
+        key: "remetente_estado",
+        label: "Estado do Remetente",
+        required: true,
+        placeholder: "UF",
+        section: "Informações Básicas",
+      },
+      {
+        key: "etiquetas_sem_nota",
+        label: "Inserir etiquetas no carrinho, sem nota fiscal?",
+        type: "select",
+        required: true,
+        section: "Opções de etiqueta",
+        options: [
+          { label: "Sim", value: "sim" },
+          { label: "Não", value: "nao" },
+        ],
+      },
+      {
+        key: "nao_enviar_etiquetas",
+        label: "Não enviar etiquetas",
+        type: "checkbox",
+        helper:
+          "Faz somente a cotação de frete no checkout, sem gerar etiquetas automaticamente.",
+        section: "Opções de etiqueta",
+      },
+      {
+        key: "comprar_automatico",
+        label: "Comprar automaticamente a etiqueta",
+        type: "checkbox",
+        helper:
+          "Compra a etiqueta que chega no carrinho do Melhor Envio (se houver saldo na carteira).",
+        section: "Opções de etiqueta",
+      },
+    ],
   },
   {
     id: "superfrete",
@@ -377,6 +500,15 @@ export default function AppsPage() {
   const [utmify, setUtmify] = useState({ enabled: false, hasToken: false, token: "" });
   const [utmifySaving, setUtmifySaving] = useState(false);
 
+  // Estado do Melhor Envio, salvo no backend (credencial + dados do remetente).
+  const [melhorEnvio, setMelhorEnvio] = useState<{
+    enabled: boolean;
+    hasToken: boolean;
+    values: Record<string, string>;
+    token: string;
+  }>({ enabled: false, hasToken: false, values: {}, token: "" });
+  const [melhorEnvioSaving, setMelhorEnvioSaving] = useState(false);
+
   const activeDefinition = useMemo(
     () => APPS.find((a) => a.id === activeApp) ?? null,
     [activeApp]
@@ -438,6 +570,26 @@ export default function AppsPage() {
       });
   }, [selectedStore]);
 
+  // Carrega o status e valores da integração Melhor Envio (sempre do backend).
+  useEffect(() => {
+    if (!selectedStore) return;
+    api
+      .get<{ enabled: boolean; has_token: boolean; values: Record<string, string> }>(
+        `/stores/${selectedStore.id}/melhor-envio`
+      )
+      .then((data) => {
+        setMelhorEnvio((prev) => ({
+          enabled: data.enabled ?? false,
+          hasToken: data.has_token ?? false,
+          values: data.values ?? {},
+          token: prev.token && !data.has_token ? prev.token : "",
+        }));
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }, [selectedStore]);
+
   const persistConfig = (appId: AppId, config: AppConfig) => {
     const key = storageKey(selectedStore?.id, appId);
     if (key) {
@@ -447,6 +599,10 @@ export default function AppsPage() {
   };
 
   const handleToggle = (appId: AppId) => {
+    if (appId === "melhor_envio") {
+      handleToggleMelhorEnvio();
+      return;
+    }
     const current = configs[appId];
     const next = { ...current, enabled: !current.enabled };
     persistConfig(appId, next);
@@ -459,6 +615,19 @@ export default function AppsPage() {
     // Utmify é salvo no backend (credencial de API sensível).
     if (activeApp === "utmify") {
       handleSaveUtmify();
+      return;
+    }
+    // Melhor Envio é salvo no backend (token + dados do remetente).
+    if (activeApp === "melhor_envio") {
+      handleSaveMelhorEnvio();
+      return;
+    }
+    // Valida campos obrigatórios (campos com `required: true`).
+    const missing = getMissingRequired(activeApp);
+    if (missing.length > 0) {
+      toast.error(
+        `Preencha os campos obrigatórios: ${missing.map((m) => m.label).join(", ")}`
+      );
       return;
     }
     setSaving(true);
@@ -520,7 +689,88 @@ export default function AppsPage() {
     }
   };
 
+  const handleSaveMelhorEnvio = async () => {
+    if (!selectedStore) return;
+    const missing = getMissingRequired("melhor_envio");
+    if (missing.length > 0) {
+      toast.error(
+        `Preencha os campos obrigatórios: ${missing.map((m) => m.label).join(", ")}`
+      );
+      return;
+    }
+
+    const token = melhorEnvio.token.trim();
+    if (!token && !melhorEnvio.hasToken) {
+      toast.error("Cole o token de acesso do Melhor Envio.");
+      return;
+    }
+
+    setMelhorEnvioSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        enabled: melhorEnvio.enabled,
+        ...melhorEnvio.values,
+      };
+      if (token) {
+        payload.api_token = token;
+      }
+
+      const data = await api.put<{
+        enabled: boolean;
+        has_token: boolean;
+        values: Record<string, string>;
+      }>(`/stores/${selectedStore.id}/melhor-envio`, payload);
+
+      setMelhorEnvio((prev) => ({
+        enabled: data.enabled ?? prev.enabled,
+        hasToken: data.has_token ?? prev.hasToken,
+        values: data.values ?? prev.values,
+        token: "",
+      }));
+      toast.success("Configurações do Melhor Envio salvas!");
+      setActiveApp(null);
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Erro ao salvar as configurações do Melhor Envio."
+      );
+    } finally {
+      setMelhorEnvioSaving(false);
+    }
+  };
+
+  const handleToggleMelhorEnvio = async () => {
+    if (!selectedStore) return;
+    const nextEnabled = !melhorEnvio.enabled;
+    setMelhorEnvio((prev) => ({ ...prev, enabled: nextEnabled }));
+    try {
+      const data = await api.put<{
+        enabled: boolean;
+        has_token: boolean;
+        values: Record<string, string>;
+      }>(`/stores/${selectedStore.id}/melhor-envio`, { enabled: nextEnabled });
+      setMelhorEnvio((prev) => ({
+        ...prev,
+        enabled: data.enabled ?? prev.enabled,
+      }));
+      toast.success(nextEnabled ? "Melhor Envio ativado." : "Melhor Envio desativado.");
+    } catch (err) {
+      setMelhorEnvio((prev) => ({ ...prev, enabled: !nextEnabled }));
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao atualizar Melhor Envio."
+      );
+    }
+  };
+
   const updateValue = (appId: AppId, key: string, value: string) => {
+    if (appId === "melhor_envio") {
+      setMelhorEnvio((prev) => ({
+        ...prev,
+        values: { ...prev.values, [key]: value },
+      }));
+      return;
+    }
     setConfigs((prev) => ({
       ...prev,
       [appId]: {
@@ -531,10 +781,28 @@ export default function AppsPage() {
   };
 
   const isConfigured = (appId: AppId) => {
-    const cfg = configs[appId];
+    const cfg = appId === "melhor_envio" ? melhorEnvio : configs[appId];
     const app = APPS.find((a) => a.id === appId);
     if (!app || !cfg) return false;
-    return app.fields.some((f) => cfg.values[f.key]?.trim());
+    const requiredFields = app.fields.filter((f) => f.required);
+    if (requiredFields.length === 0) {
+      return app.fields.some((f) => cfg.values[f.key]?.trim());
+    }
+    return requiredFields.every((f) => {
+      const v = cfg.values[f.key];
+      return v !== undefined && v !== null && String(v).trim() !== "";
+    });
+  };
+
+  const getMissingRequired = (appId: AppId): AppField[] => {
+    const cfg = appId === "melhor_envio" ? melhorEnvio : configs[appId];
+    const app = APPS.find((a) => a.id === appId);
+    if (!app || !cfg) return [];
+    return app.fields.filter((f) => {
+      if (!f.required) return false;
+      const v = cfg.values[f.key];
+      return v === undefined || v === null || String(v).trim() === "";
+    });
   };
 
   return (
@@ -566,8 +834,17 @@ export default function AppsPage() {
                   {appsByCategory[category]!.map((app) => {
                     const cfg = configs[app.id];
                     const isUtmify = app.id === "utmify";
-                    const configured = isUtmify ? utmify.hasToken : isConfigured(app.id);
-                    const active = isUtmify ? utmify.enabled : (cfg?.enabled ?? false);
+                    const isMelhorEnvio = app.id === "melhor_envio";
+                    const configured = isUtmify
+                      ? utmify.hasToken
+                      : isMelhorEnvio
+                        ? melhorEnvio.hasToken
+                        : isConfigured(app.id);
+                    const active = isUtmify
+                      ? utmify.enabled
+                      : isMelhorEnvio
+                        ? melhorEnvio.enabled
+                        : (cfg?.enabled ?? false);
 
                     return (
                       <div
@@ -640,54 +917,195 @@ export default function AppsPage() {
                     checked={
                       activeDefinition.id === "utmify"
                         ? utmify.enabled
-                        : configs[activeDefinition.id].enabled
+                        : activeDefinition.id === "melhor_envio"
+                          ? melhorEnvio.enabled
+                          : configs[activeDefinition.id].enabled
                     }
                     onCheckedChange={() =>
                       activeDefinition.id === "utmify"
                         ? handleToggleUtmify()
-                        : handleToggle(activeDefinition.id)
+                        : activeDefinition.id === "melhor_envio"
+                          ? handleToggleMelhorEnvio()
+                          : handleToggle(activeDefinition.id)
                     }
                   />
                 </div>
 
                 <div className="space-y-4">
-                  {activeDefinition.fields.map((field) => {
-                    const isUtmify = activeDefinition.id === "utmify";
-                    const value = isUtmify
-                      ? utmify.token
-                      : configs[activeDefinition.id].values[field.key] ?? "";
-                    const placeholder =
-                      isUtmify && utmify.hasToken
-                        ? "Credencial já salva — cole uma nova para substituir"
-                        : field.placeholder;
-                    return (
-                      <div key={field.key} className="space-y-1.5">
-                        <Label htmlFor={field.key}>{field.label}</Label>
-                        <Input
-                          id={field.key}
-                          type={field.type ?? "text"}
-                          placeholder={placeholder}
-                          value={value}
-                          onChange={(e) =>
-                            isUtmify
-                              ? setUtmify((prev) => ({ ...prev, token: e.target.value }))
-                              : updateValue(activeDefinition.id, field.key, e.target.value)
+                  {(() => {
+                    const fields = activeDefinition.fields;
+                    // Agrupa os campos por `section`, mantendo a ordem original.
+                    const sections: { name?: string; fields: AppField[] }[] = [];
+                    for (const field of fields) {
+                      const last = sections[sections.length - 1];
+                      if (last && last.name === field.section) {
+                        last.fields.push(field);
+                      } else {
+                        sections.push({ name: field.section, fields: [field] });
+                      }
+                    }
+
+                    return sections.map((section, sIdx) => (
+                      <div key={sIdx} className="space-y-4">
+                        {section.name && (
+                          <div className="border-l-2 border-primary/40 pl-2">
+                            <h3 className="text-sm font-semibold text-foreground">
+                              {section.name}
+                            </h3>
+                          </div>
+                        )}
+                        {section.fields.map((field) => {
+                          const isUtmify = activeDefinition.id === "utmify";
+                          const isMelhorEnvio = activeDefinition.id === "melhor_envio";
+                          const isCheckbox = field.type === "checkbox";
+                          const isSelect = field.type === "select";
+                          const isTokenField =
+                            (isUtmify && field.key === "token") ||
+                            (isMelhorEnvio && field.key === "token");
+
+                          const baseValue = isUtmify
+                            ? utmify.token
+                            : isMelhorEnvio
+                              ? melhorEnvio.values[field.key] ?? ""
+                              : configs[activeDefinition.id].values[field.key] ?? "";
+
+                          const value = isTokenField
+                            ? isUtmify
+                              ? utmify.token
+                              : melhorEnvio.token
+                            : baseValue;
+
+                          const hasSavedToken = isUtmify
+                            ? utmify.hasToken
+                            : isMelhorEnvio
+                              ? melhorEnvio.hasToken
+                              : false;
+
+                          const placeholder =
+                            isTokenField && hasSavedToken
+                              ? "Credencial já salva — cole uma nova para substituir"
+                              : field.placeholder;
+
+                          if (isSelect) {
+                            return (
+                              <div key={field.key} className="space-y-1.5">
+                                <Label htmlFor={field.key}>
+                                  {field.label}
+                                  {field.required && (
+                                    <span className="ml-0.5 text-destructive">*</span>
+                                  )}
+                                </Label>
+                                <Select
+                                  value={String(value || "")}
+                                  onValueChange={(val) =>
+                                    updateValue(activeDefinition.id, field.key, val)
+                                  }
+                                >
+                                  <SelectTrigger id={field.key}>
+                                    <SelectValue
+                                      placeholder={placeholder ?? "Selecione..."}
+                                    />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {field.options?.map((opt) => (
+                                      <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {field.helper && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {field.helper}
+                                  </p>
+                                )}
+                              </div>
+                            );
                           }
-                          autoComplete="off"
-                        />
-                        {field.helper && (
-                          <p className="text-xs text-muted-foreground">
-                            {field.helper}
-                          </p>
-                        )}
-                        {isUtmify && utmify.hasToken && (
-                          <p className="text-xs text-emerald-600">
-                            Credencial configurada. Deixe vazio para manter a atual.
-                          </p>
-                        )}
+
+                          if (isCheckbox) {
+                            const checked = value === "true";
+                            return (
+                              <div key={field.key} className="space-y-1.5">
+                                <div className="flex items-start gap-2.5 rounded-lg border p-3">
+                                  <Checkbox
+                                    id={field.key}
+                                    checked={checked}
+                                    onCheckedChange={(c) =>
+                                      updateValue(
+                                        activeDefinition.id,
+                                        field.key,
+                                        c ? "true" : "false"
+                                      )
+                                    }
+                                    className="mt-0.5"
+                                  />
+                                  <div className="space-y-1">
+                                    <Label
+                                      htmlFor={field.key}
+                                      className="cursor-pointer text-sm font-medium"
+                                    >
+                                      {field.label}
+                                    </Label>
+                                    {field.helper && (
+                                      <p className="text-xs text-muted-foreground">
+                                        {field.helper}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div key={field.key} className="space-y-1.5">
+                              <Label htmlFor={field.key}>
+                                {field.label}
+                                {field.required && (
+                                  <span className="ml-0.5 text-destructive">*</span>
+                                )}
+                              </Label>
+                              <Input
+                                id={field.key}
+                                type={field.type ?? "text"}
+                                placeholder={placeholder}
+                                value={value}
+                                onChange={(e) =>
+                                  isUtmify
+                                    ? setUtmify((prev) => ({
+                                        ...prev,
+                                        token: e.target.value,
+                                      }))
+                                    : isMelhorEnvio && isTokenField
+                                      ? setMelhorEnvio((prev) => ({
+                                          ...prev,
+                                          token: e.target.value,
+                                        }))
+                                      : updateValue(
+                                          activeDefinition.id,
+                                          field.key,
+                                          e.target.value
+                                        )
+                                }
+                                autoComplete="off"
+                              />
+                              {field.helper && (
+                                <p className="text-xs text-muted-foreground">
+                                  {field.helper}
+                                </p>
+                              )}
+                              {(isUtmify || isMelhorEnvio) && hasSavedToken && (
+                                <p className="text-xs text-emerald-600">
+                                  Credencial configurada. Deixe vazio para manter a atual.
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    ));
+                  })()}
                 </div>
 
                 {activeDefinition.docsUrl && (
@@ -707,15 +1125,15 @@ export default function AppsPage() {
                 <Button
                   variant="outline"
                   onClick={() => setActiveApp(null)}
-                  disabled={saving || utmifySaving}
+                  disabled={saving || utmifySaving || melhorEnvioSaving}
                 >
                   <X className="mr-1.5 h-4 w-4" /> Cancelar
                 </Button>
                 <Button
                   onClick={handleSaveActive}
-                  disabled={saving || utmifySaving}
+                  disabled={saving || utmifySaving || melhorEnvioSaving}
                 >
-                  {saving || utmifySaving ? (
+                  {saving || utmifySaving || melhorEnvioSaving ? (
                     "Salvando..."
                   ) : (
                     <>
