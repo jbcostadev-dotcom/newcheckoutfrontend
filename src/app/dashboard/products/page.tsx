@@ -16,6 +16,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Search,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,6 +35,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ProductDetailsDialog } from "@/components/product-details-dialog";
 
 const PAGE_SIZE = 25;
 
@@ -68,6 +70,8 @@ export default function ProductsPage() {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const fetchProducts = async () => {
     if (!selectedStore) return;
@@ -290,6 +294,11 @@ export default function ProductsPage() {
     }
   };
 
+  const openDetails = (product: Product) => {
+    setSelectedProduct(product);
+    setDetailsOpen(true);
+  };
+
   const getAttributeNames = (attributes?: Product["attributes"]) => {
     if (!attributes || attributes.length === 0) return null;
     return attributes.map((a) => a.name).join(" / ");
@@ -393,7 +402,7 @@ export default function ProductsPage() {
                 <TableHead>Status</TableHead>
                 <TableHead className="w-40">Atributos</TableHead>
                 <TableHead className="w-24">Estoque</TableHead>
-                <TableHead className="w-12">Link</TableHead>
+                <TableHead className="w-24">Link</TableHead>
                 <TableHead className="w-12 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -403,64 +412,68 @@ export default function ProductsPage() {
                   const product = g.product;
                   const selected = selectedIds.includes(product.id);
                   return (
-                    <TableRow
-                      key={product.id}
-                      data-state={selected ? "selected" : undefined}
-                    >
-                      <TableCell>
-                        <Checkbox
-                          checked={selected}
-                          onCheckedChange={() => {
-                            if (product.is_active) toggleOne(product.id);
-                          }}
-                          disabled={!product.is_active}
-                          aria-label={`Selecionar ${product.name}`}
+                  <TableRow
+                    key={product.id}
+                    data-state={selected ? "selected" : undefined}
+                    onClick={() => openDetails(product)}
+                    style={{ cursor: "pointer" }}
+                    className="hover:bg-muted/40"
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selected}
+                        onCheckedChange={() => {
+                          if (product.is_active) toggleOne(product.id);
+                        }}
+                        disabled={!product.is_active}
+                        aria-label={`Selecionar ${product.name}`}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt=""
+                          className="h-9 w-9 rounded-lg object-cover"
                         />
-                      </TableCell>
-                      <TableCell>
-                        {product.image_url ? (
-                          <img
-                            src={product.image_url}
-                            alt=""
-                            className="h-9 w-9 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
-                            <Package className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div>
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-xs text-muted-foreground max-w-[280px] truncate">
-                              {product.description || "Sem descrição"}
-                            </p>
-                          </div>
+                      ) : (
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                          <Package className="h-4 w-4 text-muted-foreground" />
                         </div>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatCurrency(Number(product.price))}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={product.is_active ? "success" : "secondary"}
-                        >
-                          {product.is_active ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs text-muted-foreground">
-                          {getAttributeNames(product.attributes) ?? "—"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs text-muted-foreground">
-                          {formatStock(product.stock_quantity)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <p className="font-medium">{product.name}</p>
+                          <p className="text-xs text-muted-foreground max-w-[280px] truncate">
+                            {product.description || "Sem descrição"}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {formatCurrency(Number(product.price))}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={product.is_active ? "success" : "secondary"}
+                      >
+                        {product.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">
+                        {getAttributeNames(product.attributes) ?? "—"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">
+                        {formatStock(product.stock_quantity)}
+                      </span>
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -470,19 +483,29 @@ export default function ProductsPage() {
                         >
                           <Copy className="h-3.5 w-3.5" />
                         </Button>
-                      </TableCell>
-                      <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(product.id)}
-                          title="Remover"
+                          className="h-8 w-8"
+                          onClick={() => openDetails(product)}
+                          title="Ver detalhes"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Eye className="h-3.5 w-3.5" />
                         </Button>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(product.id)}
+                        title="Remover"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                   );
                 }
 
@@ -495,16 +518,28 @@ export default function ProductsPage() {
                   <Fragment key={`group-${g.shopifyProductId}`}>
                     <TableRow
                       data-state={isExpanded ? "selected" : undefined}
-                      onClick={() => toggleGroup(g.shopifyProductId)}
+                      onClick={() => {
+                        const representative =
+                          g.variants.find((v) => v.is_active) || g.variants[0];
+                        if (representative) openDetails(representative);
+                      }}
                       style={{ cursor: "pointer" }}
                       className="hover:bg-muted/40"
                     >
-                      <TableCell>
-                        <ChevronRight
-                          className={`h-4 w-4 transition-transform ${
-                            isExpanded ? "rotate-90" : ""
-                          }`}
-                        />
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => toggleGroup(g.shopifyProductId)}
+                          title="Expandir/recolher variantes"
+                        >
+                          <ChevronRight
+                            className={`h-4 w-4 transition-transform ${
+                              isExpanded ? "rotate-90" : ""
+                            }`}
+                          />
+                        </Button>
                       </TableCell>
                       <TableCell>
                         {g.imageUrl ? (
@@ -574,9 +609,11 @@ export default function ProductsPage() {
                           <TableRow
                             key={variant.id}
                             data-state={selected ? "selected" : undefined}
-                            className="bg-muted/20"
+                            className="bg-muted/20 hover:bg-muted/30"
+                            onClick={() => openDetails(variant)}
+                            style={{ cursor: "pointer" }}
                           >
-                            <TableCell className="pl-8">
+                            <TableCell className="pl-8" onClick={(e) => e.stopPropagation()}>
                               <Checkbox
                                 checked={selected}
                                 onCheckedChange={() => {
@@ -628,18 +665,29 @@ export default function ProductsPage() {
                                 {formatStock(variant.stock_quantity)}
                               </span>
                             </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleCopyProductLink(variant)}
-                                title="Copiar link direto"
-                              >
-                                <Copy className="h-3.5 w-3.5" />
-                              </Button>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleCopyProductLink(variant)}
+                                  title="Copiar link direto"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => openDetails(variant)}
+                                  title="Ver detalhes"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -677,6 +725,12 @@ export default function ProductsPage() {
           />
         )}
       </div>
+
+      <ProductDetailsDialog
+        product={selectedProduct}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
 
       {/* Paginação */}
       {lastPage > 1 && (

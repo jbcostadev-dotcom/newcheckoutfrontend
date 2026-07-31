@@ -42,6 +42,26 @@ export interface Product {
   name: string;
   parent_title?: string | null;
   attributes?: ProductAttribute[] | null;
+  sku?: string | null;
+  barcode?: string | null;
+  weight?: number | null;
+  weight_unit?: string | null;
+  grams?: number | null;
+  height?: number | null;
+  width?: number | null;
+  length?: number | null;
+  dimension_unit?: string | null;
+  product_type?: string | null;
+  vendor?: string | null;
+  tags?: string[] | null;
+  taxable?: boolean | null;
+  requires_shipping?: boolean | null;
+  inventory_policy?: string | null;
+  fulfillment_service?: string | null;
+  inventory_item_id?: string | null;
+  position?: number | null;
+  tax_code?: string | null;
+  cost?: number | null;
   description?: string | null;
   price: number;
   compare_at_price?: number | null;
@@ -50,6 +70,7 @@ export interface Product {
   checkout_url?: string | null;
   is_active: boolean;
   created_at?: string;
+  updated_at?: string;
 }
 
 export type OrderStatus =
