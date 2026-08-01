@@ -386,10 +386,8 @@ const APPS: AppDefinition[] = [
     category: "pixels",
     color: "#F59E0B",
     bgColor: "#FEF3C7",
-    fields: [
-      { key: "conversion_id", label: "Conversion ID", placeholder: "AW-XXXXXXXXX" },
-      { key: "conversion_label", label: "Conversion Label (opcional)" },
-    ],
+    docsUrl: "https://support.google.com/google-ads/answer/6095821",
+    fields: [],
   },
   {
     id: "google_analytics",
@@ -509,6 +507,38 @@ export default function AppsPage() {
   }>({ enabled: false, hasToken: false, values: {}, token: "" });
   const [melhorEnvioSaving, setMelhorEnvioSaving] = useState(false);
 
+  // Estado do Google Ads, salvo no backend (pixel + flags de disparo + produtos).
+  const [googleAds, setGoogleAds] = useState<{
+    enabled: boolean;
+    hasPixel: boolean;
+    values: {
+      pixel_name: string;
+      pixel_id: string;
+      conversion_label: string;
+      only_paid_sales: boolean;
+      only_selected_products: boolean;
+      selected_product_ids: number[];
+    };
+  }>({
+    enabled: false,
+    hasPixel: false,
+    values: {
+      pixel_name: "",
+      pixel_id: "",
+      conversion_label: "",
+      only_paid_sales: true,
+      only_selected_products: false,
+      selected_product_ids: [],
+    },
+  });
+  const [googleAdsSaving, setGoogleAdsSaving] = useState(false);
+
+  // Produtos da loja — carregados sob demanda para o seletor do Google Ads.
+  const [storeProducts, setStoreProducts] = useState<
+    { id: number; name: string; parent_title?: string | null; image_url?: string | null; is_active: boolean }[]
+  >([]);
+  const [storeProductsLoading, setStoreProductsLoading] = useState(false);
+
   const activeDefinition = useMemo(
     () => APPS.find((a) => a.id === activeApp) ?? null,
     [activeApp]
@@ -590,6 +620,63 @@ export default function AppsPage() {
       });
   }, [selectedStore]);
 
+  // Carrega o status e valores da integração Google Ads (sempre do backend).
+  useEffect(() => {
+    if (!selectedStore) return;
+    api
+      .get<{
+        enabled: boolean;
+        has_pixel: boolean;
+        values: {
+          pixel_name: string;
+          pixel_id: string;
+          conversion_label: string;
+          only_paid_sales: boolean;
+          only_selected_products: boolean;
+          selected_product_ids: number[];
+        };
+      }>(`/stores/${selectedStore.id}/google-ads`)
+      .then((data) => {
+        setGoogleAds({
+          enabled: data.enabled ?? false,
+          hasPixel: data.has_pixel ?? false,
+          values: {
+            pixel_name: data.values?.pixel_name ?? "",
+            pixel_id: data.values?.pixel_id ?? "",
+            conversion_label: data.values?.conversion_label ?? "",
+            only_paid_sales: data.values?.only_paid_sales ?? true,
+            only_selected_products: data.values?.only_selected_products ?? false,
+            selected_product_ids: data.values?.selected_product_ids ?? [],
+          },
+        });
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }, [selectedStore]);
+
+  // Carrega os produtos da loja quando o dialog do Google Ads é aberto.
+  useEffect(() => {
+    if (!selectedStore || activeApp !== "google_ads") return;
+    let cancelled = false;
+    (async () => {
+      setStoreProductsLoading(true);
+      try {
+        const data = await api.get<
+          { id: number; name: string; parent_title?: string | null; image_url?: string | null; is_active: boolean }[]
+        >(`/stores/${selectedStore.id}/products`);
+        if (!cancelled) setStoreProducts(data);
+      } catch {
+        if (!cancelled) setStoreProducts([]);
+      } finally {
+        if (!cancelled) setStoreProductsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedStore, activeApp]);
+
   const persistConfig = (appId: AppId, config: AppConfig) => {
     const key = storageKey(selectedStore?.id, appId);
     if (key) {
@@ -601,6 +688,10 @@ export default function AppsPage() {
   const handleToggle = (appId: AppId) => {
     if (appId === "melhor_envio") {
       handleToggleMelhorEnvio();
+      return;
+    }
+    if (appId === "google_ads") {
+      handleToggleGoogleAds();
       return;
     }
     const current = configs[appId];
@@ -620,6 +711,11 @@ export default function AppsPage() {
     // Melhor Envio é salvo no backend (token + dados do remetente).
     if (activeApp === "melhor_envio") {
       handleSaveMelhorEnvio();
+      return;
+    }
+    // Google Ads é salvo no backend (pixel + flags de disparo).
+    if (activeApp === "google_ads") {
+      handleSaveGoogleAds();
       return;
     }
     // Valida campos obrigatórios (campos com `required: true`).
@@ -763,6 +859,80 @@ export default function AppsPage() {
     }
   };
 
+  const handleSaveGoogleAds = async () => {
+    if (!selectedStore) return;
+    const pixelId = googleAds.values.pixel_id.trim();
+    // Se o pixel já existe e o usuário não redigitou, mantemos o atual.
+    const keepCurrentPixel = pixelId === "" && googleAds.hasPixel;
+    if (!keepCurrentPixel && !pixelId) {
+      toast.error("Informe o ID do Pixel (ex.: AW-XXXXXXXXX).");
+      return;
+    }
+    if (googleAds.values.only_selected_products && googleAds.values.selected_product_ids.length === 0) {
+      toast.error("Selecione ao menos um produto para disparar o pixel.");
+      return;
+    }
+    setGoogleAdsSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        enabled: googleAds.enabled,
+        pixel_name: googleAds.values.pixel_name,
+        conversion_label: googleAds.values.conversion_label,
+        only_paid_sales: googleAds.values.only_paid_sales,
+        only_selected_products: googleAds.values.only_selected_products,
+        selected_product_ids: googleAds.values.selected_product_ids,
+      };
+      if (!keepCurrentPixel) {
+        payload.pixel_id = pixelId;
+      }
+      const data = await api.put<{
+        enabled: boolean;
+        has_pixel: boolean;
+        values: typeof googleAds.values;
+      }>(`/stores/${selectedStore.id}/google-ads`, payload);
+      setGoogleAds((prev) => ({
+        enabled: data.enabled ?? prev.enabled,
+        hasPixel: data.has_pixel ?? prev.hasPixel,
+        values: {
+          ...(data.values ?? prev.values),
+        },
+      }));
+      toast.success("Configurações do Google Ads salvas!");
+      setActiveApp(null);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao salvar as configurações do Google Ads."
+      );
+    } finally {
+      setGoogleAdsSaving(false);
+    }
+  };
+
+  const handleToggleGoogleAds = async () => {
+    if (!selectedStore) return;
+    const nextEnabled = !googleAds.enabled;
+    setGoogleAds((prev) => ({ ...prev, enabled: nextEnabled }));
+    try {
+      const data = await api.put<{
+        enabled: boolean;
+        has_pixel: boolean;
+        values: typeof googleAds.values;
+      }>(`/stores/${selectedStore.id}/google-ads`, { enabled: nextEnabled });
+      setGoogleAds((prev) => ({
+        ...prev,
+        enabled: data.enabled ?? prev.enabled,
+        hasPixel: data.has_pixel ?? prev.hasPixel,
+        values: data.values ?? prev.values,
+      }));
+      toast.success(nextEnabled ? "Google Ads ativado." : "Google Ads desativado.");
+    } catch (err) {
+      setGoogleAds((prev) => ({ ...prev, enabled: !nextEnabled }));
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao atualizar Google Ads."
+      );
+    }
+  };
+
   const updateValue = (appId: AppId, key: string, value: string) => {
     if (appId === "melhor_envio") {
       setMelhorEnvio((prev) => ({
@@ -781,6 +951,7 @@ export default function AppsPage() {
   };
 
   const isConfigured = (appId: AppId) => {
+    if (appId === "google_ads") return googleAds.hasPixel;
     const cfg = appId === "melhor_envio" ? melhorEnvio : configs[appId];
     const app = APPS.find((a) => a.id === appId);
     if (!app || !cfg) return false;
@@ -795,6 +966,7 @@ export default function AppsPage() {
   };
 
   const getMissingRequired = (appId: AppId): AppField[] => {
+    if (appId === "google_ads") return [];
     const cfg = appId === "melhor_envio" ? melhorEnvio : configs[appId];
     const app = APPS.find((a) => a.id === appId);
     if (!app || !cfg) return [];
@@ -835,16 +1007,21 @@ export default function AppsPage() {
                     const cfg = configs[app.id];
                     const isUtmify = app.id === "utmify";
                     const isMelhorEnvio = app.id === "melhor_envio";
+                    const isGoogleAds = app.id === "google_ads";
                     const configured = isUtmify
                       ? utmify.hasToken
                       : isMelhorEnvio
                         ? melhorEnvio.hasToken
-                        : isConfigured(app.id);
+                        : isGoogleAds
+                          ? googleAds.hasPixel
+                          : isConfigured(app.id);
                     const active = isUtmify
                       ? utmify.enabled
                       : isMelhorEnvio
                         ? melhorEnvio.enabled
-                        : (cfg?.enabled ?? false);
+                        : isGoogleAds
+                          ? googleAds.enabled
+                          : (cfg?.enabled ?? false);
 
                     return (
                       <div
@@ -919,7 +1096,9 @@ export default function AppsPage() {
                         ? utmify.enabled
                         : activeDefinition.id === "melhor_envio"
                           ? melhorEnvio.enabled
-                          : configs[activeDefinition.id].enabled
+                          : activeDefinition.id === "google_ads"
+                            ? googleAds.enabled
+                            : configs[activeDefinition.id].enabled
                     }
                     onCheckedChange={() =>
                       activeDefinition.id === "utmify"
@@ -930,6 +1109,200 @@ export default function AppsPage() {
                     }
                   />
                 </div>
+
+                {activeDefinition.id === "google_ads" && (
+                  <div className="space-y-4">
+                    <div className="border-l-2 border-primary/40 pl-2">
+                      <h3 className="text-sm font-semibold text-foreground">Pixel</h3>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ga_pixel_name">
+                        Nome do Pixel<span className="ml-0.5 text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="ga_pixel_name"
+                        type="text"
+                        placeholder="Ex.: Pixel Vendas — BlackFriday"
+                        value={googleAds.values.pixel_name}
+                        onChange={(e) =>
+                          setGoogleAds((prev) => ({
+                            ...prev,
+                            values: { ...prev.values, pixel_name: e.target.value },
+                          }))
+                        }
+                        autoComplete="off"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ga_pixel_id">
+                        ID do Pixel<span className="ml-0.5 text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="ga_pixel_id"
+                        type="text"
+                        placeholder={googleAds.hasPixel ? "Pixel já salvo — informe um novo para substituir" : "AW-XXXXXXXXX"}
+                        onChange={(e) =>
+                          setGoogleAds((prev) => ({
+                            ...prev,
+                            values: { ...prev.values, pixel_id: e.target.value },
+                          }))
+                        }
+                        autoComplete="off"
+                      />
+                      {googleAds.hasPixel && (
+                        <p className="text-xs text-emerald-600">
+                          Pixel configurado. Deixe vazio para manter o atual.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ga_conversion_label">Rótulo de Conversão</Label>
+                      <Input
+                        id="ga_conversion_label"
+                        type="text"
+                        placeholder="Ex.: abcDEFgh"
+                        value={googleAds.values.conversion_label}
+                        onChange={(e) =>
+                          setGoogleAds((prev) => ({
+                            ...prev,
+                            values: { ...prev.values, conversion_label: e.target.value },
+                          }))
+                        }
+                        autoComplete="off"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Rótulo da ação de conversão no Google Ads. Opcional, mas recomendado.
+                      </p>
+                    </div>
+
+                    <div className="border-l-2 border-primary/40 pl-2">
+                      <h3 className="text-sm font-semibold text-foreground">Disparos</h3>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div className="pr-3">
+                        <p className="text-sm font-medium">Disparar apenas as vendas pagas</p>
+                        <p className="text-xs text-muted-foreground">
+                          Quando ativo, só dispara a conversão após o pagamento ser confirmado.
+                          Recomendado para casos em que você só quer pagar conversões reais.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={googleAds.values.only_paid_sales}
+                        onCheckedChange={(c) =>
+                          setGoogleAds((prev) => ({
+                            ...prev,
+                            values: { ...prev.values, only_paid_sales: c },
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="pr-3">
+                          <p className="text-sm font-medium">Disparar somente em produtos selecionados</p>
+                          <p className="text-xs text-muted-foreground">
+                            Quando ativo, o pixel só dispara para os produtos selecionados abaixo.
+                          </p>
+                        </div>
+                        <Switch
+                          checked={googleAds.values.only_selected_products}
+                          onCheckedChange={(c) =>
+                            setGoogleAds((prev) => ({
+                              ...prev,
+                              values: { ...prev.values, only_selected_products: c },
+                            }))
+                          }
+                        />
+                      </div>
+
+                      {googleAds.values.only_selected_products && (
+                        <div className="rounded-lg border p-3">
+                          <div className="mb-2 flex items-center justify-between">
+                            <p className="text-xs font-semibold text-muted-foreground">
+                              Selecione os produtos que disparam o pixel
+                            </p>
+                            <span className="text-xs text-muted-foreground">
+                              {googleAds.values.selected_product_ids.length} selecionado(s)
+                            </span>
+                          </div>
+                          {storeProductsLoading ? (
+                            <div className="space-y-2">
+                              <Skeleton className="h-10 w-full rounded-md" />
+                              <Skeleton className="h-10 w-full rounded-md" />
+                              <Skeleton className="h-10 w-full rounded-md" />
+                            </div>
+                          ) : storeProducts.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">
+                              Nenhum produto encontrado nesta loja.
+                            </p>
+                          ) : (
+                            <div className="max-h-56 overflow-y-auto rounded-md border border-border/60">
+                              {storeProducts.map((p) => {
+                                const checked = googleAds.values.selected_product_ids.includes(p.id);
+                                return (
+                                  <label
+                                    key={p.id}
+                                    className={`flex cursor-pointer items-center gap-3 border-b border-border/40 px-3 py-2 last:border-0 hover:bg-muted/40 ${
+                                      checked ? "bg-muted/40" : ""
+                                    }`}
+                                  >
+                                    <Checkbox
+                                      checked={checked}
+                                      onCheckedChange={() => {
+                                      setGoogleAds((prev) => {
+                                        const set = new Set(prev.values.selected_product_ids);
+                                        if (set.has(p.id)) set.delete(p.id);
+                                        else set.add(p.id);
+                                        return {
+                                          ...prev,
+                                          values: {
+                                            ...prev.values,
+                                            selected_product_ids: Array.from(set).sort((a, b) => a - b),
+                                          },
+                                        };
+                                      });
+                                    }}
+                                    />
+                                    {p.image_url ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img
+                                        src={p.image_url}
+                                        alt=""
+                                        className="h-8 w-8 shrink-0 rounded object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-xs">
+                                        {p.name?.[0]?.toUpperCase() ?? "?"}
+                                      </div>
+                                    )}
+                                    <span className="min-w-0 flex-1 truncate text-sm">
+                                      {p.parent_title ?? p.name}
+                                      {p.parent_title && p.name !== p.parent_title ? (
+                                        <span className="block text-xs text-muted-foreground">
+                                          {p.name}
+                                        </span>
+                                      ) : null}
+                                    </span>
+                                    {!p.is_active && (
+                                      <Badge variant="secondary" className="text-[10px]">
+                                        Inativo
+                                      </Badge>
+                                    )}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   {(() => {
@@ -1125,15 +1498,15 @@ export default function AppsPage() {
                 <Button
                   variant="outline"
                   onClick={() => setActiveApp(null)}
-                  disabled={saving || utmifySaving || melhorEnvioSaving}
+                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving}
                 >
                   <X className="mr-1.5 h-4 w-4" /> Cancelar
                 </Button>
                 <Button
                   onClick={handleSaveActive}
-                  disabled={saving || utmifySaving || melhorEnvioSaving}
+                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving}
                 >
-                  {saving || utmifySaving || melhorEnvioSaving ? (
+                  {saving || utmifySaving || melhorEnvioSaving || googleAdsSaving ? (
                     "Salvando..."
                   ) : (
                     <>
