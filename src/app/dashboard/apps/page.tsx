@@ -890,10 +890,10 @@ export default function AppsPage() {
         open={!!activeApp}
         onOpenChange={(open) => !open && setActiveApp(null)}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="flex max-w-lg max-h-[85vh] flex-col overflow-hidden p-0">
           {activeDefinition && (
             <>
-              <DialogHeader>
+              <DialogHeader className="px-6 pt-6">
                 <div className="flex items-center gap-3">
                   <AppLogo app={activeDefinition} />
                   <div>
@@ -905,7 +905,7 @@ export default function AppsPage() {
                 </div>
               </DialogHeader>
 
-              <div className="space-y-4 py-2">
+              <div className="flex-1 space-y-4 overflow-y-auto px-6 py-2">
                 <div className="flex items-center justify-between rounded-lg border p-3">
                   <div>
                     <p className="text-sm font-medium">Ativar integração</p>
@@ -1121,7 +1121,7 @@ export default function AppsPage() {
                 )}
               </div>
 
-              <DialogFooter>
+              <DialogFooter className="px-6 pb-6">
                 <Button
                   variant="outline"
                   onClick={() => setActiveApp(null)}
