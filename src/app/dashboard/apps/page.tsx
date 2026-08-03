@@ -446,7 +446,8 @@ const APPS: AppDefinition[] = [
     category: "pixels",
     color: "#111827",
     bgColor: "#F3F4F6",
-    fields: [{ key: "pixel_id", label: "Pixel ID" }],
+    docsUrl: "https://ads.tiktok.com/help/article/events-api?lang=pt",
+    fields: [],
   },
 ];
 
@@ -550,6 +551,26 @@ export default function AppsPage() {
     testEventCode: "",
   });
   const [metaPixelSaving, setMetaPixelSaving] = useState(false);
+
+  const [tiktokPixel, setTikTokPixel] = useState({
+    enabled: false,
+    hasPixel: false,
+    hasAccessToken: false,
+    hasTestEventCode: false,
+    values: {
+      pixel_name: "",
+      pixel_code: "",
+      browser_enabled: true,
+      events_api_enabled: true,
+      only_paid_sales: true,
+      only_selected_products: false,
+      selected_product_ids: [] as number[],
+      require_consent: false,
+    },
+    accessToken: "",
+    testEventCode: "",
+  });
+  const [tiktokPixelSaving, setTikTokPixelSaving] = useState(false);
 
   // Produtos da loja — carregados sob demanda para o seletor do Google Ads.
   const [storeProducts, setStoreProducts] = useState<
@@ -675,7 +696,7 @@ export default function AppsPage() {
 
   // Carrega os produtos da loja quando o dialog do Google Ads é aberto.
   useEffect(() => {
-    if (!selectedStore || !["google_ads", "meta_pixel"].includes(activeApp ?? "")) return;
+    if (!selectedStore || !["google_ads", "meta_pixel", "tiktok_pixel"].includes(activeApp ?? "")) return;
     let cancelled = false;
     (async () => {
       setStoreProductsLoading(true);
@@ -729,6 +750,40 @@ export default function AppsPage() {
       });
   }, [selectedStore]);
 
+  // Carrega o status do TikTok Pixel e da Events API (segredos nunca retornam).
+  useEffect(() => {
+    if (!selectedStore) return;
+    api
+      .get<{
+        enabled: boolean;
+        has_pixel: boolean;
+        has_access_token: boolean;
+        has_test_event_code: boolean;
+        values: typeof tiktokPixel.values;
+      }>(`/stores/${selectedStore.id}/tiktok-pixel`)
+      .then((data) => {
+        setTikTokPixel((prev) => ({
+          ...prev,
+          enabled: data.enabled ?? false,
+          hasPixel: data.has_pixel ?? false,
+          hasAccessToken: data.has_access_token ?? false,
+          hasTestEventCode: data.has_test_event_code ?? false,
+          values: {
+            ...prev.values,
+            ...(data.values ?? {}),
+            pixel_name: data.values?.pixel_name ?? "",
+            pixel_code: data.values?.pixel_code ?? "",
+            selected_product_ids: data.values?.selected_product_ids ?? [],
+          },
+          accessToken: "",
+          testEventCode: "",
+        }));
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }, [selectedStore]);
+
   const persistConfig = (appId: AppId, config: AppConfig) => {
     const key = storageKey(selectedStore?.id, appId);
     if (key) {
@@ -748,6 +803,10 @@ export default function AppsPage() {
     }
     if (appId === "meta_pixel") {
       handleToggleMetaPixel();
+      return;
+    }
+    if (appId === "tiktok_pixel") {
+      handleToggleTikTokPixel();
       return;
     }
     const current = configs[appId];
@@ -776,6 +835,10 @@ export default function AppsPage() {
     }
     if (activeApp === "meta_pixel") {
       handleSaveMetaPixel();
+      return;
+    }
+    if (activeApp === "tiktok_pixel") {
+      handleSaveTikTokPixel();
       return;
     }
     // Valida campos obrigatórios (campos com `required: true`).
@@ -1090,9 +1153,92 @@ export default function AppsPage() {
     }
   };
 
+  const handleSaveTikTokPixel = async () => {
+    if (!selectedStore) return;
+    const pixelCode = tiktokPixel.values.pixel_code.trim();
+    const keepCurrentPixel = pixelCode === "" && tiktokPixel.hasPixel;
+    if (!keepCurrentPixel && pixelCode === "") {
+      toast.error("Informe o Pixel Code do TikTok.");
+      return;
+    }
+    const token = tiktokPixel.accessToken.trim();
+    if (tiktokPixel.enabled && tiktokPixel.values.events_api_enabled && !tiktokPixel.hasAccessToken && !token) {
+      toast.error("Informe o Access Token para ativar a Events API do TikTok.");
+      return;
+    }
+    if (tiktokPixel.values.only_selected_products && tiktokPixel.values.selected_product_ids.length === 0) {
+      toast.error("Selecione ao menos um produto para filtrar os eventos.");
+      return;
+    }
+
+    setTikTokPixelSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        enabled: tiktokPixel.enabled,
+        pixel_name: tiktokPixel.values.pixel_name,
+        browser_enabled: tiktokPixel.values.browser_enabled,
+        events_api_enabled: tiktokPixel.values.events_api_enabled,
+        only_paid_sales: tiktokPixel.values.only_paid_sales,
+        only_selected_products: tiktokPixel.values.only_selected_products,
+        selected_product_ids: tiktokPixel.values.selected_product_ids,
+        require_consent: tiktokPixel.values.require_consent,
+      };
+      if (!keepCurrentPixel) payload.pixel_code = pixelCode;
+      if (token) payload.access_token = token;
+      if (tiktokPixel.testEventCode.trim()) payload.test_event_code = tiktokPixel.testEventCode.trim();
+
+      const data = await api.put<{
+        enabled: boolean;
+        has_pixel: boolean;
+        has_access_token: boolean;
+        has_test_event_code: boolean;
+        values: typeof tiktokPixel.values;
+      }>(`/stores/${selectedStore.id}/tiktok-pixel`, payload);
+      setTikTokPixel((prev) => ({
+        ...prev,
+        enabled: data.enabled ?? prev.enabled,
+        hasPixel: data.has_pixel ?? prev.hasPixel,
+        hasAccessToken: data.has_access_token ?? prev.hasAccessToken,
+        hasTestEventCode: data.has_test_event_code ?? prev.hasTestEventCode,
+        accessToken: "",
+        testEventCode: "",
+        values: { ...prev.values, ...(data.values ?? {}) },
+      }));
+      toast.success("TikTok Pixel e Events API salvos.");
+      setActiveApp(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar TikTok Pixel.");
+    } finally {
+      setTikTokPixelSaving(false);
+    }
+  };
+
+  const handleToggleTikTokPixel = async () => {
+    if (!selectedStore) return;
+    const nextEnabled = !tiktokPixel.enabled;
+    if (nextEnabled && !tiktokPixel.hasPixel) {
+      toast.error("Informe e salve o Pixel Code antes de ativar.");
+      return;
+    }
+    if (nextEnabled && tiktokPixel.values.events_api_enabled && !tiktokPixel.hasAccessToken) {
+      toast.error("Informe e salve o Access Token antes de ativar a Events API.");
+      return;
+    }
+    setTikTokPixel((prev) => ({ ...prev, enabled: nextEnabled }));
+    try {
+      const data = await api.put<{ enabled: boolean }>(`/stores/${selectedStore.id}/tiktok-pixel`, { enabled: nextEnabled });
+      setTikTokPixel((prev) => ({ ...prev, enabled: data.enabled ?? nextEnabled }));
+      toast.success(nextEnabled ? "TikTok Pixel ativado." : "TikTok Pixel desativado.");
+    } catch (err) {
+      setTikTokPixel((prev) => ({ ...prev, enabled: !nextEnabled }));
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar TikTok Pixel.");
+    }
+  };
+
   const isConfigured = (appId: AppId) => {
     if (appId === "google_ads") return googleAds.hasPixel;
     if (appId === "meta_pixel") return metaPixel.hasPixel;
+    if (appId === "tiktok_pixel") return tiktokPixel.hasPixel;
     const cfg = appId === "melhor_envio" ? melhorEnvio : configs[appId];
     const app = APPS.find((a) => a.id === appId);
     if (!app || !cfg) return false;
@@ -1150,6 +1296,7 @@ export default function AppsPage() {
                     const isMelhorEnvio = app.id === "melhor_envio";
                     const isGoogleAds = app.id === "google_ads";
                     const isMetaPixel = app.id === "meta_pixel";
+                    const isTikTokPixel = app.id === "tiktok_pixel";
                     const configured = isUtmify
                       ? utmify.hasToken
                       : isMelhorEnvio
@@ -1158,6 +1305,8 @@ export default function AppsPage() {
                           ? googleAds.hasPixel
                           : isMetaPixel
                             ? metaPixel.hasPixel
+                            : isTikTokPixel
+                              ? tiktokPixel.hasPixel
                           : isConfigured(app.id);
                     const active = isUtmify
                       ? utmify.enabled
@@ -1167,6 +1316,8 @@ export default function AppsPage() {
                           ? googleAds.enabled
                           : isMetaPixel
                             ? metaPixel.enabled
+                            : isTikTokPixel
+                              ? tiktokPixel.enabled
                           : (cfg?.enabled ?? false);
 
                     return (
@@ -1246,6 +1397,8 @@ export default function AppsPage() {
                             ? googleAds.enabled
                             : activeDefinition.id === "meta_pixel"
                               ? metaPixel.enabled
+                            : activeDefinition.id === "tiktok_pixel"
+                              ? tiktokPixel.enabled
                             : configs[activeDefinition.id].enabled
                     }
                     onCheckedChange={() =>
@@ -1255,6 +1408,8 @@ export default function AppsPage() {
                           ? handleToggleMelhorEnvio()
                           : activeDefinition.id === "meta_pixel"
                             ? handleToggleMetaPixel()
+                          : activeDefinition.id === "tiktok_pixel"
+                            ? handleToggleTikTokPixel()
                           : handleToggle(activeDefinition.id)
                     }
                   />
@@ -1321,6 +1476,71 @@ export default function AppsPage() {
                       <div key={key} className="flex items-center justify-between rounded-lg border p-3">
                         <div className="pr-3"><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{helper}</p></div>
                         <Switch checked={metaPixel.values[key]} onCheckedChange={(checked) => setMetaPixel((prev) => ({ ...prev, values: { ...prev.values, [key]: checked } }))} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {activeDefinition.id === "tiktok_pixel" && (
+                  <div className="space-y-4">
+                    <div className="border-l-2 border-primary/40 pl-2">
+                      <h3 className="text-sm font-semibold text-foreground">Credenciais do TikTok</h3>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="tiktok_pixel_name">Nome do Pixel</Label>
+                      <Input
+                        id="tiktok_pixel_name"
+                        value={tiktokPixel.values.pixel_name}
+                        placeholder="Ex.: Pixel Vendas"
+                        onChange={(e) => setTikTokPixel((prev) => ({ ...prev, values: { ...prev.values, pixel_name: e.target.value } }))}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="tiktok_pixel_code">Pixel Code (ID)<span className="ml-0.5 text-destructive">*</span></Label>
+                      <Input
+                        id="tiktok_pixel_code"
+                        value={tiktokPixel.values.pixel_code}
+                        placeholder={tiktokPixel.hasPixel ? "Pixel já salvo — informe um novo para substituir" : "CÓDIGO_DO_PIXEL"}
+                        onChange={(e) => setTikTokPixel((prev) => ({ ...prev, values: { ...prev.values, pixel_code: e.target.value.trim() } }))}
+                        autoComplete="off"
+                      />
+                      {tiktokPixel.hasPixel && <p className="text-xs text-emerald-600">Pixel configurado. Deixe vazio para manter o atual.</p>}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="tiktok_access_token">Access Token da Events API<span className="ml-0.5 text-destructive">*</span></Label>
+                      <Input
+                        id="tiktok_access_token"
+                        type="password"
+                        value={tiktokPixel.accessToken}
+                        placeholder={tiktokPixel.hasAccessToken ? "Token já salvo — cole um novo para substituir" : "Cole o token gerado no TikTok Events Manager"}
+                        onChange={(e) => setTikTokPixel((prev) => ({ ...prev, accessToken: e.target.value }))}
+                        autoComplete="new-password"
+                      />
+                      {tiktokPixel.hasAccessToken && <p className="text-xs text-emerald-600">Token configurado. Deixe vazio para manter o atual.</p>}
+                      <p className="text-xs text-muted-foreground">Obrigatório quando a Events API estiver ativa. O token fica criptografado e nunca é enviado ao checkout.</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="tiktok_test_event_code">Código de teste (opcional)</Label>
+                      <Input
+                        id="tiktok_test_event_code"
+                        type="password"
+                        value={tiktokPixel.testEventCode}
+                        placeholder={tiktokPixel.hasTestEventCode ? "Código já salvo — cole um novo para substituir" : "TEST12345"}
+                        onChange={(e) => setTikTokPixel((prev) => ({ ...prev, testEventCode: e.target.value }))}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="border-l-2 border-primary/40 pl-2"><h3 className="text-sm font-semibold text-foreground">Canais e regras</h3></div>
+                    {([
+                      ["browser_enabled", "Ativar TikTok Pixel no navegador", "Dispara eventos no checkout para o navegador."],
+                      ["events_api_enabled", "Ativar TikTok Events API", "Envia os eventos pelo servidor com IP, user-agent e identificadores enriquecidos."],
+                      ["only_paid_sales", "Enviar Purchase somente após pagamento aprovado", "Evita contabilizar Pix/boleto ainda pendentes."],
+                      ["require_consent", "Exigir consentimento de marketing", "Respeita a preferência de consentimento antes de enviar eventos."],
+                    ] as const).map(([key, label, helper]) => (
+                      <div key={key} className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="pr-3"><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{helper}</p></div>
+                        <Switch checked={tiktokPixel.values[key]} onCheckedChange={(checked) => setTikTokPixel((prev) => ({ ...prev, values: { ...prev.values, [key]: checked } }))} />
                       </div>
                     ))}
                   </div>
@@ -1714,15 +1934,15 @@ export default function AppsPage() {
                 <Button
                   variant="outline"
                   onClick={() => setActiveApp(null)}
-                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving}
+                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving || tiktokPixelSaving}
                 >
                   <X className="mr-1.5 h-4 w-4" /> Cancelar
                 </Button>
                 <Button
                   onClick={handleSaveActive}
-                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving}
+                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving || tiktokPixelSaving}
                 >
-                  {saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving ? (
+                  {saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving || tiktokPixelSaving ? (
                     "Salvando..."
                   ) : (
                     <>
