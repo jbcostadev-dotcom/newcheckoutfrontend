@@ -436,10 +436,8 @@ const APPS: AppDefinition[] = [
     category: "pixels",
     color: "#2563EB",
     bgColor: "#DBEAFE",
-    fields: [
-      { key: "pixel_id", label: "Pixel ID", placeholder: "123456789012345" },
-      { key: "access_token", label: "Access Token (opcional)", type: "password", helper: "Necessário apenas para envio server-side." },
-    ],
+    docsUrl: "https://www.facebook.com/business/help/AboutConversionsAPI",
+    fields: [],
   },
   {
     id: "tiktok_pixel",
@@ -532,6 +530,26 @@ export default function AppsPage() {
     },
   });
   const [googleAdsSaving, setGoogleAdsSaving] = useState(false);
+
+  const [metaPixel, setMetaPixel] = useState({
+    enabled: false,
+    hasPixel: false,
+    hasAccessToken: false,
+    hasTestEventCode: false,
+    values: {
+      pixel_name: "",
+      pixel_id: "",
+      browser_enabled: true,
+      capi_enabled: true,
+      only_paid_sales: true,
+      only_selected_products: false,
+      selected_product_ids: [] as number[],
+      require_consent: false,
+    },
+    accessToken: "",
+    testEventCode: "",
+  });
+  const [metaPixelSaving, setMetaPixelSaving] = useState(false);
 
   // Produtos da loja — carregados sob demanda para o seletor do Google Ads.
   const [storeProducts, setStoreProducts] = useState<
@@ -657,7 +675,7 @@ export default function AppsPage() {
 
   // Carrega os produtos da loja quando o dialog do Google Ads é aberto.
   useEffect(() => {
-    if (!selectedStore || activeApp !== "google_ads") return;
+    if (!selectedStore || !["google_ads", "meta_pixel"].includes(activeApp ?? "")) return;
     let cancelled = false;
     (async () => {
       setStoreProductsLoading(true);
@@ -677,6 +695,40 @@ export default function AppsPage() {
     };
   }, [selectedStore, activeApp]);
 
+  // Carrega o status da Meta (segredos nunca retornam da API).
+  useEffect(() => {
+    if (!selectedStore) return;
+    api
+      .get<{
+        enabled: boolean;
+        has_pixel: boolean;
+        has_access_token: boolean;
+        has_test_event_code: boolean;
+        values: typeof metaPixel.values;
+      }>(`/stores/${selectedStore.id}/meta-pixel`)
+      .then((data) => {
+        setMetaPixel((prev) => ({
+          ...prev,
+          enabled: data.enabled ?? false,
+          hasPixel: data.has_pixel ?? false,
+          hasAccessToken: data.has_access_token ?? false,
+          hasTestEventCode: data.has_test_event_code ?? false,
+          values: {
+            ...prev.values,
+            ...(data.values ?? {}),
+            pixel_name: data.values?.pixel_name ?? "",
+            pixel_id: data.values?.pixel_id ?? "",
+            selected_product_ids: data.values?.selected_product_ids ?? [],
+          },
+          accessToken: "",
+          testEventCode: "",
+        }));
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }, [selectedStore]);
+
   const persistConfig = (appId: AppId, config: AppConfig) => {
     const key = storageKey(selectedStore?.id, appId);
     if (key) {
@@ -692,6 +744,10 @@ export default function AppsPage() {
     }
     if (appId === "google_ads") {
       handleToggleGoogleAds();
+      return;
+    }
+    if (appId === "meta_pixel") {
+      handleToggleMetaPixel();
       return;
     }
     const current = configs[appId];
@@ -716,6 +772,10 @@ export default function AppsPage() {
     // Google Ads é salvo no backend (pixel + flags de disparo).
     if (activeApp === "google_ads") {
       handleSaveGoogleAds();
+      return;
+    }
+    if (activeApp === "meta_pixel") {
+      handleSaveMetaPixel();
       return;
     }
     // Valida campos obrigatórios (campos com `required: true`).
@@ -950,8 +1010,89 @@ export default function AppsPage() {
     }));
   };
 
+  const handleSaveMetaPixel = async () => {
+    if (!selectedStore) return;
+    const pixelId = metaPixel.values.pixel_id.trim();
+    const keepCurrentPixel = pixelId === "" && metaPixel.hasPixel;
+    if (!keepCurrentPixel && !/^\d+$/.test(pixelId)) {
+      toast.error("Informe um Pixel ID numérico da Meta.");
+      return;
+    }
+    const token = metaPixel.accessToken.trim();
+    if (metaPixel.enabled && metaPixel.values.capi_enabled && !metaPixel.hasAccessToken && !token) {
+      toast.error("Informe o Access Token para ativar a API de Conversões.");
+      return;
+    }
+    if (metaPixel.values.only_selected_products && metaPixel.values.selected_product_ids.length === 0) {
+      toast.error("Selecione ao menos um produto para filtrar os eventos.");
+      return;
+    }
+    setMetaPixelSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        enabled: metaPixel.enabled,
+        pixel_name: metaPixel.values.pixel_name,
+        browser_enabled: metaPixel.values.browser_enabled,
+        capi_enabled: metaPixel.values.capi_enabled,
+        only_paid_sales: metaPixel.values.only_paid_sales,
+        only_selected_products: metaPixel.values.only_selected_products,
+        selected_product_ids: metaPixel.values.selected_product_ids,
+        require_consent: metaPixel.values.require_consent,
+      };
+      if (!keepCurrentPixel) payload.pixel_id = pixelId;
+      if (token) payload.access_token = token;
+      if (metaPixel.testEventCode.trim()) payload.test_event_code = metaPixel.testEventCode.trim();
+      const data = await api.put<{
+        enabled: boolean;
+        has_pixel: boolean;
+        has_access_token: boolean;
+        has_test_event_code: boolean;
+        values: typeof metaPixel.values;
+      }>(`/stores/${selectedStore.id}/meta-pixel`, payload);
+      setMetaPixel((prev) => ({
+        ...prev,
+        enabled: data.enabled ?? prev.enabled,
+        hasPixel: data.has_pixel ?? prev.hasPixel,
+        hasAccessToken: data.has_access_token ?? prev.hasAccessToken,
+        hasTestEventCode: data.has_test_event_code ?? prev.hasTestEventCode,
+        accessToken: "",
+        testEventCode: "",
+        values: { ...prev.values, ...(data.values ?? {}) },
+      }));
+      toast.success("Meta Pixel e API de Conversões salvos.");
+      setActiveApp(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar Meta Pixel.");
+    } finally {
+      setMetaPixelSaving(false);
+    }
+  };
+
+  const handleToggleMetaPixel = async () => {
+    if (!selectedStore) return;
+    const nextEnabled = !metaPixel.enabled;
+    if (nextEnabled && !metaPixel.hasPixel) {
+      toast.error("Informe e salve o Pixel ID antes de ativar.");
+      return;
+    }
+    if (nextEnabled && metaPixel.values.capi_enabled && !metaPixel.hasAccessToken) {
+      toast.error("Informe e salve o Access Token antes de ativar a API de Conversões.");
+      return;
+    }
+    setMetaPixel((prev) => ({ ...prev, enabled: nextEnabled }));
+    try {
+      const data = await api.put<{ enabled: boolean }>(`/stores/${selectedStore.id}/meta-pixel`, { enabled: nextEnabled });
+      setMetaPixel((prev) => ({ ...prev, enabled: data.enabled ?? nextEnabled }));
+      toast.success(nextEnabled ? "Meta Pixel ativado." : "Meta Pixel desativado.");
+    } catch (err) {
+      setMetaPixel((prev) => ({ ...prev, enabled: !nextEnabled }));
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar Meta Pixel.");
+    }
+  };
+
   const isConfigured = (appId: AppId) => {
     if (appId === "google_ads") return googleAds.hasPixel;
+    if (appId === "meta_pixel") return metaPixel.hasPixel;
     const cfg = appId === "melhor_envio" ? melhorEnvio : configs[appId];
     const app = APPS.find((a) => a.id === appId);
     if (!app || !cfg) return false;
@@ -1008,12 +1149,15 @@ export default function AppsPage() {
                     const isUtmify = app.id === "utmify";
                     const isMelhorEnvio = app.id === "melhor_envio";
                     const isGoogleAds = app.id === "google_ads";
+                    const isMetaPixel = app.id === "meta_pixel";
                     const configured = isUtmify
                       ? utmify.hasToken
                       : isMelhorEnvio
                         ? melhorEnvio.hasToken
                         : isGoogleAds
                           ? googleAds.hasPixel
+                          : isMetaPixel
+                            ? metaPixel.hasPixel
                           : isConfigured(app.id);
                     const active = isUtmify
                       ? utmify.enabled
@@ -1021,6 +1165,8 @@ export default function AppsPage() {
                         ? melhorEnvio.enabled
                         : isGoogleAds
                           ? googleAds.enabled
+                          : isMetaPixel
+                            ? metaPixel.enabled
                           : (cfg?.enabled ?? false);
 
                     return (
@@ -1098,6 +1244,8 @@ export default function AppsPage() {
                           ? melhorEnvio.enabled
                           : activeDefinition.id === "google_ads"
                             ? googleAds.enabled
+                            : activeDefinition.id === "meta_pixel"
+                              ? metaPixel.enabled
                             : configs[activeDefinition.id].enabled
                     }
                     onCheckedChange={() =>
@@ -1105,10 +1253,78 @@ export default function AppsPage() {
                         ? handleToggleUtmify()
                         : activeDefinition.id === "melhor_envio"
                           ? handleToggleMelhorEnvio()
+                          : activeDefinition.id === "meta_pixel"
+                            ? handleToggleMetaPixel()
                           : handleToggle(activeDefinition.id)
                     }
                   />
                 </div>
+
+                {activeDefinition.id === "meta_pixel" && (
+                  <div className="space-y-4">
+                    <div className="border-l-2 border-primary/40 pl-2">
+                      <h3 className="text-sm font-semibold text-foreground">Credenciais da Meta</h3>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="meta_pixel_name">Nome do Pixel</Label>
+                      <Input
+                        id="meta_pixel_name"
+                        value={metaPixel.values.pixel_name}
+                        placeholder="Ex.: Pixel Vendas"
+                        onChange={(e) => setMetaPixel((prev) => ({ ...prev, values: { ...prev.values, pixel_name: e.target.value } }))}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="meta_pixel_id">Pixel ID<span className="ml-0.5 text-destructive">*</span></Label>
+                      <Input
+                        id="meta_pixel_id"
+                        value={metaPixel.values.pixel_id}
+                        placeholder={metaPixel.hasPixel ? "Pixel já salvo — informe um novo para substituir" : "123456789012345"}
+                        onChange={(e) => setMetaPixel((prev) => ({ ...prev, values: { ...prev.values, pixel_id: e.target.value.replace(/\D/g, "") } }))}
+                        inputMode="numeric"
+                        autoComplete="off"
+                      />
+                      {metaPixel.hasPixel && <p className="text-xs text-emerald-600">Pixel configurado. Deixe vazio para manter o atual.</p>}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="meta_access_token">Access Token da API de Conversões<span className="ml-0.5 text-destructive">*</span></Label>
+                      <Input
+                        id="meta_access_token"
+                        type="password"
+                        value={metaPixel.accessToken}
+                        placeholder={metaPixel.hasAccessToken ? "Token já salvo — cole um novo para substituir" : "Cole o token gerado no Gerenciador de Eventos"}
+                        onChange={(e) => setMetaPixel((prev) => ({ ...prev, accessToken: e.target.value }))}
+                        autoComplete="new-password"
+                      />
+                      {metaPixel.hasAccessToken && <p className="text-xs text-emerald-600">Token configurado. Deixe vazio para manter o atual.</p>}
+                      <p className="text-xs text-muted-foreground">Obrigatório quando a API de Conversões estiver ativa. O token fica criptografado e nunca é enviado ao checkout.</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="meta_test_event_code">Código de teste (opcional)</Label>
+                      <Input
+                        id="meta_test_event_code"
+                        type="password"
+                        value={metaPixel.testEventCode}
+                        placeholder={metaPixel.hasTestEventCode ? "Código já salvo — cole um novo para substituir" : "TEST12345"}
+                        onChange={(e) => setMetaPixel((prev) => ({ ...prev, testEventCode: e.target.value }))}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="border-l-2 border-primary/40 pl-2"><h3 className="text-sm font-semibold text-foreground">Canais e regras</h3></div>
+                    {([
+                      ["browser_enabled", "Ativar Meta Pixel no navegador", "Dispara eventos no checkout para o navegador."],
+                      ["capi_enabled", "Ativar API de Conversões", "Envia os eventos pelo servidor com dados enriquecidos."],
+                      ["only_paid_sales", "Enviar Purchase somente após pagamento aprovado", "Evita contabilizar Pix/boleto ainda pendentes."],
+                      ["require_consent", "Exigir consentimento de marketing", "Respeita a preferência de consentimento antes de enviar eventos."],
+                    ] as const).map(([key, label, helper]) => (
+                      <div key={key} className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="pr-3"><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{helper}</p></div>
+                        <Switch checked={metaPixel.values[key]} onCheckedChange={(checked) => setMetaPixel((prev) => ({ ...prev, values: { ...prev.values, [key]: checked } }))} />
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {activeDefinition.id === "google_ads" && (
                   <div className="space-y-4">
@@ -1498,15 +1714,15 @@ export default function AppsPage() {
                 <Button
                   variant="outline"
                   onClick={() => setActiveApp(null)}
-                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving}
+                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving}
                 >
                   <X className="mr-1.5 h-4 w-4" /> Cancelar
                 </Button>
                 <Button
                   onClick={handleSaveActive}
-                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving}
+                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving}
                 >
-                  {saving || utmifySaving || melhorEnvioSaving || googleAdsSaving ? (
+                  {saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving ? (
                     "Salvando..."
                   ) : (
                     <>
