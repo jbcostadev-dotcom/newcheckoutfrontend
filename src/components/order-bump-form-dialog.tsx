@@ -53,6 +53,8 @@ const EMPTY_FORM: OrderBumpFormData = {
   button_color: "#13BF8C",
   button_text_color: "#FFFFFF",
   button_label: "Quero essa oferta",
+  scarcity_timer_enabled: false,
+  scarcity_timer_minutes: 10,
   is_active: true,
 };
 
@@ -96,6 +98,8 @@ export function OrderBumpFormDialog({
           button_color: orderBump.button_color,
           button_text_color: orderBump.button_text_color,
           button_label: orderBump.button_label,
+          scarcity_timer_enabled: orderBump.scarcity_timer_enabled ?? false,
+          scarcity_timer_minutes: Number(orderBump.scarcity_timer_minutes) || 10,
           is_active: orderBump.is_active,
         });
       } else {
@@ -453,6 +457,52 @@ export function OrderBumpFormDialog({
               />
             </div>
 
+            {/* Cronômetro de escassez */}
+            <section className="space-y-3 rounded-lg border bg-card p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">Cronômetro de escassez</p>
+                  <p className="text-xs text-muted-foreground">
+                    Exibe uma contagem regressiva no topo da oferta.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.scarcity_timer_enabled}
+                  onCheckedChange={(v) =>
+                    setForm((f) => ({ ...f, scarcity_timer_enabled: v }))
+                  }
+                />
+              </div>
+              {form.scarcity_timer_enabled && (
+                <div className="space-y-2">
+                  <Label htmlFor="ob-scarcity-minutes">Duração</Label>
+                  <div className="relative">
+                    <Input
+                      id="ob-scarcity-minutes"
+                      type="number"
+                      min={1}
+                      max={1440}
+                      step={1}
+                      value={form.scarcity_timer_minutes}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          scarcity_timer_minutes: Number(e.target.value) || 10,
+                        }))
+                      }
+                      className="pr-20"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                      minutos
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Padrão: 10 minutos. Limite máximo: 24 horas.
+                  </p>
+                </div>
+              )}
+            </section>
+
             {/* Cores */}
             <section className="space-y-3">
               <div className="text-sm font-semibold">Personalize seu Order Bump</div>
@@ -501,6 +551,20 @@ export function OrderBumpFormDialog({
               >
                 {selectedProduct ? (
                   <>
+                    {form.scarcity_timer_enabled && (
+                      <div
+                        className="-mx-3 -mt-3 mb-3 flex items-center justify-between gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wide"
+                        style={{
+                          background: form.button_color,
+                          color: form.button_text_color,
+                        }}
+                      >
+                        <span>Oferta especial para você</span>
+                        <span className="rounded-full bg-black/15 px-2 py-0.5 font-mono text-[10px] normal-case tracking-normal">
+                          {formatCountdown(Math.max(1, form.scarcity_timer_minutes) * 60)}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-start gap-3">
                       {selectedProduct.image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -570,6 +634,12 @@ export function OrderBumpFormDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function formatCountdown(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function PayMethodToggle({
