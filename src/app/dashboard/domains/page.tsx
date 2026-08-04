@@ -69,6 +69,10 @@ export default function DomainsPage() {
 
   const handleAddDomain = async () => {
     if (!selectedStore || !newDomain.trim()) return;
+    if (domains.length > 0) {
+      toast.error("Esta loja já possui um domínio personalizado.");
+      return;
+    }
     setAdding(true);
     try {
       const response = await api.post<{ domain: Domain; instructions: { type: string; host: string; target: string; expected_cname: string } }>(
@@ -164,6 +168,7 @@ export default function DomainsPage() {
   const checkoutUrl = selectedStore
     ? `https://${checkoutAppDomain}/store/${selectedStore.id}/checkout`
     : null;
+  const hasCustomDomain = domains.length > 0;
 
   return (
     <>
@@ -171,7 +176,11 @@ export default function DomainsPage() {
         title="Domínios"
         description={`Gerencie os domínios de ${selectedStore?.name ?? "sua loja"}.`}
         actions={
-          <Button onClick={() => setAddDialogOpen(true)}>
+          <Button
+            onClick={() => setAddDialogOpen(true)}
+            disabled={loading || hasCustomDomain}
+            title={hasCustomDomain ? "Cada loja pode ter apenas um domínio personalizado." : undefined}
+          >
             <Plus className="h-4 w-4" /> Adicionar Domínio
           </Button>
         }
@@ -215,7 +224,7 @@ export default function DomainsPage() {
           <CardHeader>
             <CardTitle>Domínios Personalizados</CardTitle>
             <CardDescription>
-              Conecte seu próprio domínio para usar no checkout.
+              Conecte um domínio próprio para usar no checkout. Cada loja pode ter apenas um domínio personalizado.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -293,7 +302,7 @@ export default function DomainsPage() {
             <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleAddDomain} disabled={adding || !newDomain.trim()}>
+            <Button onClick={handleAddDomain} disabled={adding || hasCustomDomain || !newDomain.trim()}>
               {adding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Adicionar
             </Button>
