@@ -418,7 +418,8 @@ const APPS: AppDefinition[] = [
     category: "pixels",
     color: "#F97316",
     bgColor: "#FFEDD5",
-    fields: [{ key: "pixel_id", label: "Pixel ID" }],
+    docsUrl: "https://docs.qingque.cn/d/home/eZQDaewub9hw8vS2dHfz5OKl-?identityId=1oE1i26WBWd",
+    fields: [],
   },
   {
     id: "taboola_pixel",
@@ -427,7 +428,8 @@ const APPS: AppDefinition[] = [
     category: "pixels",
     color: "#2563EB",
     bgColor: "#DBEAFE",
-    fields: [{ key: "pixel_id", label: "Pixel ID" }],
+    docsUrl: "https://developers.taboola.com/pixel/docs/pixel-overview",
+    fields: [],
   },
   {
     id: "meta_pixel",
@@ -572,6 +574,51 @@ export default function AppsPage() {
   });
   const [tiktokPixelSaving, setTikTokPixelSaving] = useState(false);
 
+  const [kwaiPixel, setKwaiPixel] = useState({
+    enabled: false,
+    hasPixel: false,
+    hasAccessToken: false,
+    hasTestEventCode: false,
+    eventsApiAvailable: false,
+    values: {
+      pixel_name: "",
+      pixel_code: "",
+      browser_enabled: true,
+      events_api_enabled: false,
+      only_paid_sales: true,
+      only_selected_products: false,
+      selected_product_ids: [] as number[],
+      require_consent: false,
+    },
+    accessToken: "",
+    testEventCode: "",
+  });
+  const [kwaiPixelSaving, setKwaiPixelSaving] = useState(false);
+
+  const [taboolaPixel, setTaboolaPixel] = useState({
+    enabled: false,
+    hasAccountId: false,
+    hasPostbackUrl: false,
+    values: {
+      pixel_name: "",
+      account_id: "",
+      browser_enabled: true,
+      s2s_enabled: true,
+      only_paid_sales: true,
+      only_selected_products: false,
+      selected_product_ids: [] as number[],
+      require_consent: false,
+      page_view_event_name: "page_view",
+      view_content_event_name: "PRODUCT_VIEW",
+      add_to_cart_event_name: "ADD_TO_CART",
+      initiate_checkout_event_name: "CHECKOUT",
+      add_payment_info_event_name: "ADD_PAYMENT_INFO",
+      purchase_event_name: "PURCHASE",
+    },
+    postbackUrl: "",
+  });
+  const [taboolaPixelSaving, setTaboolaPixelSaving] = useState(false);
+
   // Produtos da loja — carregados sob demanda para o seletor do Google Ads.
   const [storeProducts, setStoreProducts] = useState<
     { id: number; name: string; parent_title?: string | null; image_url?: string | null; is_active: boolean }[]
@@ -696,7 +743,7 @@ export default function AppsPage() {
 
   // Carrega os produtos da loja quando o dialog do Google Ads é aberto.
   useEffect(() => {
-    if (!selectedStore || !["google_ads", "meta_pixel", "tiktok_pixel"].includes(activeApp ?? "")) return;
+    if (!selectedStore || !["google_ads", "meta_pixel", "tiktok_pixel", "kwai_pixel", "taboola_pixel"].includes(activeApp ?? "")) return;
     let cancelled = false;
     (async () => {
       setStoreProductsLoading(true);
@@ -715,6 +762,26 @@ export default function AppsPage() {
       cancelled = true;
     };
   }, [selectedStore, activeApp]);
+
+  // Carrega a configuração Taboola; a URL do postback nunca é exposta pelo backend.
+  useEffect(() => {
+    if (!selectedStore) return;
+    api.get<{
+      enabled: boolean;
+      has_account_id: boolean;
+      has_postback_url: boolean;
+      values: typeof taboolaPixel.values;
+    }>(`/stores/${selectedStore.id}/taboola-pixel`).then((data) => {
+      setTaboolaPixel((prev) => ({
+        ...prev,
+        enabled: data.enabled ?? false,
+        hasAccountId: data.has_account_id ?? false,
+        hasPostbackUrl: data.has_postback_url ?? false,
+        values: { ...prev.values, ...(data.values ?? {}), account_id: data.values?.account_id ?? "", selected_product_ids: data.values?.selected_product_ids ?? [] },
+        postbackUrl: "",
+      }));
+    }).catch(() => { /* ignore */ });
+  }, [selectedStore]);
 
   // Carrega o status da Meta (segredos nunca retornam da API).
   useEffect(() => {
@@ -739,6 +806,42 @@ export default function AppsPage() {
             ...(data.values ?? {}),
             pixel_name: data.values?.pixel_name ?? "",
             pixel_id: data.values?.pixel_id ?? "",
+            selected_product_ids: data.values?.selected_product_ids ?? [],
+          },
+          accessToken: "",
+          testEventCode: "",
+        }));
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }, [selectedStore]);
+
+  // Carrega o status do Kwai Pixel; tokens nunca retornam para o navegador.
+  useEffect(() => {
+    if (!selectedStore) return;
+    api
+      .get<{
+        enabled: boolean;
+        has_pixel: boolean;
+        has_access_token: boolean;
+        has_test_event_code: boolean;
+        events_api_available?: boolean;
+        values: typeof kwaiPixel.values;
+      }>(`/stores/${selectedStore.id}/kwai-pixel`)
+      .then((data) => {
+        setKwaiPixel((prev) => ({
+          ...prev,
+          enabled: data.enabled ?? false,
+          hasPixel: data.has_pixel ?? false,
+          hasAccessToken: data.has_access_token ?? false,
+          hasTestEventCode: data.has_test_event_code ?? false,
+          eventsApiAvailable: data.events_api_available ?? false,
+          values: {
+            ...prev.values,
+            ...(data.values ?? {}),
+            pixel_name: data.values?.pixel_name ?? "",
+            pixel_code: data.values?.pixel_code ?? "",
             selected_product_ids: data.values?.selected_product_ids ?? [],
           },
           accessToken: "",
@@ -809,6 +912,14 @@ export default function AppsPage() {
       handleToggleTikTokPixel();
       return;
     }
+    if (appId === "kwai_pixel") {
+      handleToggleKwaiPixel();
+      return;
+    }
+    if (appId === "taboola_pixel") {
+      handleToggleTaboolaPixel();
+      return;
+    }
     const current = configs[appId];
     const next = { ...current, enabled: !current.enabled };
     persistConfig(appId, next);
@@ -839,6 +950,14 @@ export default function AppsPage() {
     }
     if (activeApp === "tiktok_pixel") {
       handleSaveTikTokPixel();
+      return;
+    }
+    if (activeApp === "kwai_pixel") {
+      handleSaveKwaiPixel();
+      return;
+    }
+    if (activeApp === "taboola_pixel") {
+      handleSaveTaboolaPixel();
       return;
     }
     // Valida campos obrigatórios (campos com `required: true`).
@@ -1235,10 +1354,167 @@ export default function AppsPage() {
     }
   };
 
+  const handleSaveKwaiPixel = async () => {
+    if (!selectedStore) return;
+    const pixelCode = kwaiPixel.values.pixel_code.trim();
+    const keepCurrentPixel = pixelCode === "" && kwaiPixel.hasPixel;
+    if (!keepCurrentPixel && pixelCode === "") {
+      toast.error("Informe o Pixel ID do Kwai.");
+      return;
+    }
+    const token = kwaiPixel.accessToken.trim();
+    if (kwaiPixel.enabled && kwaiPixel.values.events_api_enabled && !kwaiPixel.hasAccessToken && !token) {
+      toast.error("Informe o Access Token para ativar a API server-side do Kwai.");
+      return;
+    }
+    if (kwaiPixel.values.only_selected_products && kwaiPixel.values.selected_product_ids.length === 0) {
+      toast.error("Selecione ao menos um produto para filtrar os eventos.");
+      return;
+    }
+    setKwaiPixelSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        enabled: kwaiPixel.enabled,
+        pixel_name: kwaiPixel.values.pixel_name,
+        browser_enabled: kwaiPixel.values.browser_enabled,
+        events_api_enabled: kwaiPixel.values.events_api_enabled,
+        only_paid_sales: kwaiPixel.values.only_paid_sales,
+        only_selected_products: kwaiPixel.values.only_selected_products,
+        selected_product_ids: kwaiPixel.values.selected_product_ids,
+        require_consent: kwaiPixel.values.require_consent,
+      };
+      if (!keepCurrentPixel) payload.pixel_code = pixelCode;
+      if (token) payload.access_token = token;
+      if (kwaiPixel.testEventCode.trim()) payload.test_event_code = kwaiPixel.testEventCode.trim();
+      const data = await api.put<{
+        enabled: boolean;
+        has_pixel: boolean;
+        has_access_token: boolean;
+        has_test_event_code: boolean;
+        events_api_available?: boolean;
+        values: typeof kwaiPixel.values;
+      }>(`/stores/${selectedStore.id}/kwai-pixel`, payload);
+      setKwaiPixel((prev) => ({
+        ...prev,
+        enabled: data.enabled ?? prev.enabled,
+        hasPixel: data.has_pixel ?? prev.hasPixel,
+        hasAccessToken: data.has_access_token ?? prev.hasAccessToken,
+        hasTestEventCode: data.has_test_event_code ?? prev.hasTestEventCode,
+        eventsApiAvailable: data.events_api_available ?? prev.eventsApiAvailable,
+        accessToken: "",
+        testEventCode: "",
+        values: { ...prev.values, ...(data.values ?? {}) },
+      }));
+      toast.success("Kwai Pixel e configurações de eventos salvos.");
+      setActiveApp(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar Kwai Pixel.");
+    } finally {
+      setKwaiPixelSaving(false);
+    }
+  };
+
+  const handleToggleKwaiPixel = async () => {
+    if (!selectedStore) return;
+    const nextEnabled = !kwaiPixel.enabled;
+    if (nextEnabled && !kwaiPixel.hasPixel) {
+      toast.error("Informe e salve o Pixel ID antes de ativar.");
+      return;
+    }
+    if (nextEnabled && kwaiPixel.values.events_api_enabled && !kwaiPixel.hasAccessToken) {
+      toast.error("Informe e salve o Access Token antes de ativar a API server-side.");
+      return;
+    }
+    setKwaiPixel((prev) => ({ ...prev, enabled: nextEnabled }));
+    try {
+      const data = await api.put<{ enabled: boolean }>(`/stores/${selectedStore.id}/kwai-pixel`, { enabled: nextEnabled });
+      setKwaiPixel((prev) => ({ ...prev, enabled: data.enabled ?? nextEnabled }));
+      toast.success(nextEnabled ? "Kwai Pixel ativado." : "Kwai Pixel desativado.");
+    } catch (err) {
+      setKwaiPixel((prev) => ({ ...prev, enabled: !nextEnabled }));
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar Kwai Pixel.");
+    }
+  };
+
+  const handleSaveTaboolaPixel = async () => {
+    if (!selectedStore) return;
+    const accountId = taboolaPixel.values.account_id.trim();
+    const keepCurrent = accountId === "" && taboolaPixel.hasAccountId;
+    if (!keepCurrent && accountId === "") {
+      toast.error("Informe o Account ID do Taboola.");
+      return;
+    }
+    if (taboolaPixel.values.only_selected_products && taboolaPixel.values.selected_product_ids.length === 0) {
+      toast.error("Selecione ao menos um produto para filtrar os eventos.");
+      return;
+    }
+    setTaboolaPixelSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        enabled: taboolaPixel.enabled,
+        pixel_name: taboolaPixel.values.pixel_name,
+        browser_enabled: taboolaPixel.values.browser_enabled,
+        s2s_enabled: taboolaPixel.values.s2s_enabled,
+        only_paid_sales: taboolaPixel.values.only_paid_sales,
+        only_selected_products: taboolaPixel.values.only_selected_products,
+        selected_product_ids: taboolaPixel.values.selected_product_ids,
+        require_consent: taboolaPixel.values.require_consent,
+        page_view_event_name: taboolaPixel.values.page_view_event_name,
+        view_content_event_name: taboolaPixel.values.view_content_event_name,
+        add_to_cart_event_name: taboolaPixel.values.add_to_cart_event_name,
+        initiate_checkout_event_name: taboolaPixel.values.initiate_checkout_event_name,
+        add_payment_info_event_name: taboolaPixel.values.add_payment_info_event_name,
+        purchase_event_name: taboolaPixel.values.purchase_event_name,
+      };
+      if (!keepCurrent) payload.account_id = accountId;
+      if (taboolaPixel.postbackUrl.trim()) payload.postback_url = taboolaPixel.postbackUrl.trim();
+      const data = await api.put<{
+        enabled: boolean;
+        has_account_id: boolean;
+        has_postback_url: boolean;
+        values: typeof taboolaPixel.values;
+      }>(`/stores/${selectedStore.id}/taboola-pixel`, payload);
+      setTaboolaPixel((prev) => ({
+        ...prev,
+        enabled: data.enabled ?? prev.enabled,
+        hasAccountId: data.has_account_id ?? prev.hasAccountId,
+        hasPostbackUrl: data.has_postback_url ?? prev.hasPostbackUrl,
+        values: { ...prev.values, ...(data.values ?? {}) },
+        postbackUrl: "",
+      }));
+      toast.success("Taboola Pixel e postback salvos.");
+      setActiveApp(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar Taboola Pixel.");
+    } finally {
+      setTaboolaPixelSaving(false);
+    }
+  };
+
+  const handleToggleTaboolaPixel = async () => {
+    if (!selectedStore) return;
+    const nextEnabled = !taboolaPixel.enabled;
+    if (nextEnabled && !taboolaPixel.hasAccountId) {
+      toast.error("Informe e salve o Account ID antes de ativar.");
+      return;
+    }
+    setTaboolaPixel((prev) => ({ ...prev, enabled: nextEnabled }));
+    try {
+      const data = await api.put<{ enabled: boolean }>(`/stores/${selectedStore.id}/taboola-pixel`, { enabled: nextEnabled });
+      setTaboolaPixel((prev) => ({ ...prev, enabled: data.enabled ?? nextEnabled }));
+      toast.success(nextEnabled ? "Taboola Pixel ativado." : "Taboola Pixel desativado.");
+    } catch (err) {
+      setTaboolaPixel((prev) => ({ ...prev, enabled: !nextEnabled }));
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar Taboola Pixel.");
+    }
+  };
+
   const isConfigured = (appId: AppId) => {
     if (appId === "google_ads") return googleAds.hasPixel;
     if (appId === "meta_pixel") return metaPixel.hasPixel;
     if (appId === "tiktok_pixel") return tiktokPixel.hasPixel;
+    if (appId === "kwai_pixel") return kwaiPixel.hasPixel;
+    if (appId === "taboola_pixel") return taboolaPixel.hasAccountId;
     const cfg = appId === "melhor_envio" ? melhorEnvio : configs[appId];
     const app = APPS.find((a) => a.id === appId);
     if (!app || !cfg) return false;
@@ -1297,6 +1573,8 @@ export default function AppsPage() {
                     const isGoogleAds = app.id === "google_ads";
                     const isMetaPixel = app.id === "meta_pixel";
                     const isTikTokPixel = app.id === "tiktok_pixel";
+                    const isKwaiPixel = app.id === "kwai_pixel";
+                    const isTaboolaPixel = app.id === "taboola_pixel";
                     const configured = isUtmify
                       ? utmify.hasToken
                       : isMelhorEnvio
@@ -1307,6 +1585,10 @@ export default function AppsPage() {
                             ? metaPixel.hasPixel
                             : isTikTokPixel
                               ? tiktokPixel.hasPixel
+                              : isKwaiPixel
+                                ? kwaiPixel.hasPixel
+                              : isTaboolaPixel
+                                ? taboolaPixel.hasAccountId
                           : isConfigured(app.id);
                     const active = isUtmify
                       ? utmify.enabled
@@ -1318,6 +1600,10 @@ export default function AppsPage() {
                             ? metaPixel.enabled
                             : isTikTokPixel
                               ? tiktokPixel.enabled
+                              : isKwaiPixel
+                                ? kwaiPixel.enabled
+                              : isTaboolaPixel
+                                ? taboolaPixel.enabled
                           : (cfg?.enabled ?? false);
 
                     return (
@@ -1399,6 +1685,10 @@ export default function AppsPage() {
                               ? metaPixel.enabled
                             : activeDefinition.id === "tiktok_pixel"
                               ? tiktokPixel.enabled
+                            : activeDefinition.id === "kwai_pixel"
+                              ? kwaiPixel.enabled
+                            : activeDefinition.id === "taboola_pixel"
+                              ? taboolaPixel.enabled
                             : configs[activeDefinition.id].enabled
                     }
                     onCheckedChange={() =>
@@ -1410,6 +1700,10 @@ export default function AppsPage() {
                             ? handleToggleMetaPixel()
                           : activeDefinition.id === "tiktok_pixel"
                             ? handleToggleTikTokPixel()
+                          : activeDefinition.id === "kwai_pixel"
+                            ? handleToggleKwaiPixel()
+                          : activeDefinition.id === "taboola_pixel"
+                            ? handleToggleTaboolaPixel()
                           : handleToggle(activeDefinition.id)
                     }
                   />
@@ -1541,6 +1835,104 @@ export default function AppsPage() {
                       <div key={key} className="flex items-center justify-between rounded-lg border p-3">
                         <div className="pr-3"><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{helper}</p></div>
                         <Switch checked={tiktokPixel.values[key]} onCheckedChange={(checked) => setTikTokPixel((prev) => ({ ...prev, values: { ...prev.values, [key]: checked } }))} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {activeDefinition.id === "kwai_pixel" && (
+                  <div className="space-y-4">
+                    <div className="border-l-2 border-primary/40 pl-2">
+                      <h3 className="text-sm font-semibold text-foreground">Credenciais do Kwai</h3>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="kwai_pixel_name">Nome do Pixel</Label>
+                      <Input id="kwai_pixel_name" value={kwaiPixel.values.pixel_name} placeholder="Ex.: Pixel Vendas"
+                        onChange={(e) => setKwaiPixel((prev) => ({ ...prev, values: { ...prev.values, pixel_name: e.target.value } }))} autoComplete="off" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="kwai_pixel_code">Pixel ID<span className="ml-0.5 text-destructive">*</span></Label>
+                      <Input id="kwai_pixel_code" value={kwaiPixel.values.pixel_code}
+                        placeholder={kwaiPixel.hasPixel ? "Pixel já salvo — informe um novo para substituir" : "ID do Pixel no Kwai Ads Manager"}
+                        onChange={(e) => setKwaiPixel((prev) => ({ ...prev, values: { ...prev.values, pixel_code: e.target.value.trim() } }))} autoComplete="off" />
+                      {kwaiPixel.hasPixel && <p className="text-xs text-emerald-600">Pixel configurado. Deixe vazio para manter o atual.</p>}
+                    </div>
+                    <>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="kwai_access_token">Access Token server-side</Label>
+                        <Input id="kwai_access_token" type="password" value={kwaiPixel.accessToken}
+                          placeholder={kwaiPixel.hasAccessToken ? "Token já salvo — cole um novo para substituir" : "Cole o token fornecido pelo Kwai"}
+                          onChange={(e) => setKwaiPixel((prev) => ({ ...prev, accessToken: e.target.value }))} autoComplete="new-password" />
+                        {kwaiPixel.hasAccessToken && <p className="text-xs text-emerald-600">Token configurado. Deixe vazio para manter o atual.</p>}
+                        <p className="text-xs text-muted-foreground">O token fica criptografado e nunca é enviado ao checkout.</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="kwai_test_event_code">Código de teste (opcional)</Label>
+                        <Input id="kwai_test_event_code" type="password" value={kwaiPixel.testEventCode}
+                          placeholder={kwaiPixel.hasTestEventCode ? "Código já salvo — cole um novo para substituir" : "Código de teste do Kwai"}
+                          onChange={(e) => setKwaiPixel((prev) => ({ ...prev, testEventCode: e.target.value }))} autoComplete="off" />
+                      </div>
+                    </>
+                    <div className="border-l-2 border-primary/40 pl-2"><h3 className="text-sm font-semibold text-foreground">Canais e regras</h3></div>
+                    {([
+                      ["browser_enabled", "Ativar Kwai Pixel no navegador", "Carrega o Pixel e envia eventos do checkout."],
+                      ...(kwaiPixel.eventsApiAvailable ? [["events_api_enabled", "Ativar eventos server-side", "Envia eventos pelo servidor quando o endpoint do Kwai estiver habilitado."]] : []),
+                      ["only_paid_sales", "Enviar Purchase somente após pagamento aprovado", "Evita contabilizar Pix/boleto ainda pendentes."],
+                      ["require_consent", "Exigir consentimento de marketing", "Respeita a preferência de consentimento antes de enviar eventos."],
+                    ] as const).map(([key, label, helper]) => (
+                      <div key={key} className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="pr-3"><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{helper}</p></div>
+                        <Switch disabled={key === "events_api_enabled" && !kwaiPixel.eventsApiAvailable} checked={Boolean(kwaiPixel.values[key as keyof typeof kwaiPixel.values])} onCheckedChange={(checked) => setKwaiPixel((prev) => ({ ...prev, values: { ...prev.values, [key]: checked } }))} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {activeDefinition.id === "taboola_pixel" && (
+                  <div className="space-y-4">
+                    <div className="border-l-2 border-primary/40 pl-2">
+                      <h3 className="text-sm font-semibold text-foreground">Credenciais do Taboola</h3>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="taboola_pixel_name">Nome da integração</Label>
+                      <Input id="taboola_pixel_name" value={taboolaPixel.values.pixel_name} placeholder="Ex.: Taboola Vendas"
+                        onChange={(e) => setTaboolaPixel((prev) => ({ ...prev, values: { ...prev.values, pixel_name: e.target.value } }))} autoComplete="off" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="taboola_account_id">Account ID<span className="ml-0.5 text-destructive">*</span></Label>
+                      <Input id="taboola_account_id" value={taboolaPixel.values.account_id}
+                        placeholder={taboolaPixel.hasAccountId ? "Account ID já salvo — informe um novo para substituir" : "ID da conta no Taboola Ads"}
+                        onChange={(e) => setTaboolaPixel((prev) => ({ ...prev, values: { ...prev.values, account_id: e.target.value.trim() } }))} autoComplete="off" />
+                      {taboolaPixel.hasAccountId && <p className="text-xs text-emerald-600">Account ID configurado. Deixe vazio para manter o atual.</p>}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="taboola_postback_url">URL do postback S2S (opcional)</Label>
+                      <Input id="taboola_postback_url" type="url" value={taboolaPixel.postbackUrl}
+                        placeholder={taboolaPixel.hasPostbackUrl ? "URL personalizada já salva — deixe vazio para manter" : "https://trc.taboola.com/actions-handler/log/3/s2s-action"}
+                        onChange={(e) => setTaboolaPixel((prev) => ({ ...prev, postbackUrl: e.target.value }))} autoComplete="off" />
+                      <p className="text-xs text-muted-foreground">Deixe vazio para usar o endpoint oficial global do Taboola. A URL fica protegida no servidor.</p>
+                    </div>
+                    <div className="border-l-2 border-primary/40 pl-2"><h3 className="text-sm font-semibold text-foreground">Canais e regras</h3></div>
+                    {([
+                      ["browser_enabled", "Ativar Taboola Pixel no navegador", "Carrega o Pixel e envia PageView e eventos do checkout."],
+                      ["s2s_enabled", "Ativar postback server-side", "Envia conversões ao Taboola quando o clique tblci estiver disponível."],
+                      ["only_paid_sales", "Enviar Purchase somente após pagamento aprovado", "Evita contabilizar pedidos pendentes."],
+                      ["require_consent", "Exigir consentimento de marketing", "Respeita a preferência de consentimento antes de enviar eventos."],
+                    ] as const).map(([key, label, helper]) => (
+                      <div key={key} className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="pr-3"><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{helper}</p></div>
+                        <Switch checked={Boolean(taboolaPixel.values[key as keyof typeof taboolaPixel.values])} onCheckedChange={(checked) => setTaboolaPixel((prev) => ({ ...prev, values: { ...prev.values, [key]: checked } }))} />
+                      </div>
+                    ))}
+                    <div className="border-l-2 border-primary/40 pl-2"><h3 className="text-sm font-semibold text-foreground">Nomes dos eventos DCO</h3></div>
+                    <p className="text-xs text-muted-foreground">Use os nomes exatamente como aparecem nos eventos personalizados da conta Taboola.</p>
+                    {([
+                      ["page_view_event_name", "PageView"], ["view_content_event_name", "ViewContent"], ["add_to_cart_event_name", "AddToCart"],
+                      ["initiate_checkout_event_name", "InitiateCheckout"], ["add_payment_info_event_name", "AddPaymentInfo"], ["purchase_event_name", "Purchase"],
+                    ] as const).map(([key, label]) => (
+                      <div key={key} className="grid grid-cols-[1fr_1.2fr] items-center gap-3">
+                        <Label htmlFor={`taboola_${key}`}>{label}</Label>
+                        <Input id={`taboola_${key}`} value={taboolaPixel.values[key]} onChange={(e) => setTaboolaPixel((prev) => ({ ...prev, values: { ...prev.values, [key]: e.target.value } }))} />
                       </div>
                     ))}
                   </div>
@@ -1934,15 +2326,15 @@ export default function AppsPage() {
                 <Button
                   variant="outline"
                   onClick={() => setActiveApp(null)}
-                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving || tiktokPixelSaving}
+                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving || tiktokPixelSaving || kwaiPixelSaving || taboolaPixelSaving}
                 >
                   <X className="mr-1.5 h-4 w-4" /> Cancelar
                 </Button>
                 <Button
                   onClick={handleSaveActive}
-                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving || tiktokPixelSaving}
+                  disabled={saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving || tiktokPixelSaving || kwaiPixelSaving || taboolaPixelSaving}
                 >
-                  {saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving || tiktokPixelSaving ? (
+                  {saving || utmifySaving || melhorEnvioSaving || googleAdsSaving || metaPixelSaving || tiktokPixelSaving || kwaiPixelSaving || taboolaPixelSaving ? (
                     "Salvando..."
                   ) : (
                     <>
