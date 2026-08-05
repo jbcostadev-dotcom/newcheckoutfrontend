@@ -123,7 +123,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
           },
           {
             href: "/dashboard/cupons",
-            label: "Descontos",
+            label: "Cupons",
             icon: TicketPercent,
             match: (p) => p.startsWith("/dashboard/cupons"),
           },

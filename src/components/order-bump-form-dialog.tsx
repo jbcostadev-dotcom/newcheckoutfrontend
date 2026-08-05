@@ -5,7 +5,7 @@ import { useStore } from "@/contexts/StoreContext";
 import { api } from "@/lib/api";
 import { formatCurrency, cn } from "@/lib/utils";
 import type { OrderBump, OrderBumpFormData, Product } from "@/types";
-import { Sparkles, Check, CreditCard, QrCode, Barcode, AlertCircle } from "lucide-react";
+import { Sparkles, Check, CreditCard, QrCode, Barcode, AlertCircle, Package, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProductSelectorDialog } from "@/components/product-selector-dialog";
 
 interface OrderBumpFormDialogProps {
   open: boolean;
@@ -76,6 +77,7 @@ export function OrderBumpFormDialog({
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [targetSelectorOpen, setTargetSelectorOpen] = useState(false);
   const isEditing = Boolean(orderBump);
 
   useEffect(() => {
@@ -133,6 +135,16 @@ export function OrderBumpFormDialog({
     [products, form.product_id]
   );
 
+  const selectedTargetProduct = useMemo(
+    () =>
+      products.find((p) => p.id === form.target_product_id) ?? null,
+    [products, form.target_product_id]
+  );
+
+  const handleTargetProductSelection = (ids: number[]) => {
+    setForm((f) => ({ ...f, target_product_id: ids[0] ?? null }));
+  };
+
   const previewPrice = useMemo(() => {
     const base = Number(selectedProduct?.price) || 0;
     const value = Number(form.discount_value) || 0;
@@ -165,7 +177,8 @@ export function OrderBumpFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -350,25 +363,52 @@ export function OrderBumpFormDialog({
               </div>
 
               {form.scope === "specific" && (
-                <div className="space-y-2">
-                  <Label htmlFor="ob-target">Produto-alvo no carrinho</Label>
-                  <Select
-                    value={String(form.target_product_id ?? "")}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, target_product_id: Number(v) }))
-                    }
+                <div className="space-y-3">
+                  <Label>Produto-alvo no carrinho</Label>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => setTargetSelectorOpen(true)}
                   >
-                    <SelectTrigger id="ob-target">
-                      <SelectValue placeholder="Selecione o produto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    Adicionar produto(s)
+                  </Button>
+
+                  {selectedTargetProduct && (
+                    <div className="flex items-center gap-3 rounded-lg border p-2">
+                      {selectedTargetProduct.image_url ? (
+                        <img
+                          src={selectedTargetProduct.image_url}
+                          alt=""
+                          className="h-10 w-10 rounded-md object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
+                          <Package className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {selectedTargetProduct.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatCurrency(Number(selectedTargetProduct.price))}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() =>
+                          setForm((f) => ({ ...f, target_product_id: null }))
+                        }
+                        aria-label="Remover produto-alvo"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </section>
@@ -632,7 +672,16 @@ export function OrderBumpFormDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      <ProductSelectorDialog
+        open={targetSelectorOpen}
+        onOpenChange={setTargetSelectorOpen}
+        selectedIds={form.target_product_id ? [form.target_product_id] : []}
+        onConfirm={handleTargetProductSelection}
+        selectionMode="single"
+      />
+    </>
   );
 }
 

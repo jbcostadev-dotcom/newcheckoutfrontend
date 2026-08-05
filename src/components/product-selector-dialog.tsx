@@ -25,6 +25,7 @@ interface ProductSelectorDialogProps {
   onOpenChange: (open: boolean) => void;
   selectedIds: number[];
   onConfirm: (ids: number[]) => void;
+  selectionMode?: "single" | "multiple";
 }
 
 interface ProductGroup {
@@ -44,6 +45,7 @@ export function ProductSelectorDialog({
   onOpenChange,
   selectedIds,
   onConfirm,
+  selectionMode = "multiple",
 }: ProductSelectorDialogProps) {
   const { selectedStore } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
@@ -130,11 +132,20 @@ export function ProductSelectorDialog({
     return filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   }, [filtered, page, lastPage]);
 
-  const isGroupSelected = (group: ProductGroup) =>
-    group.productIds.length > 0 &&
-    group.productIds.every((id) => localSelected.includes(id));
+  const isGroupSelected = (group: ProductGroup) => {
+    if (selectionMode === "single") {
+      return group.productIds.some((id) => localSelected.includes(id));
+    }
+
+    return (
+      group.productIds.length > 0 &&
+      group.productIds.every((id) => localSelected.includes(id))
+    );
+  };
 
   const isGroupPartial = (group: ProductGroup) => {
+    if (selectionMode === "single") return false;
+
     const selectedCount = group.productIds.filter((id) =>
       localSelected.includes(id)
     ).length;
@@ -145,6 +156,14 @@ export function ProductSelectorDialog({
     paginated.length > 0 && paginated.every((g) => isGroupSelected(g));
 
   const toggleGroup = (group: ProductGroup) => {
+    if (selectionMode === "single") {
+      const productId = group.productIds[0];
+      setLocalSelected((prev) =>
+        prev.includes(productId) ? [] : [productId]
+      );
+      return;
+    }
+
     if (isGroupSelected(group)) {
       setLocalSelected((prev) =>
         prev.filter((id) => !group.productIds.includes(id))
@@ -193,14 +212,16 @@ export function ProductSelectorDialog({
                 className="pl-9"
               />
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleAllOnPage}
-              disabled={paginated.length === 0}
-            >
-              {allSelectedOnPage ? "Desmarcar todos" : "Marcar todos"}
-            </Button>
+            {selectionMode === "multiple" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleAllOnPage}
+                disabled={paginated.length === 0}
+              >
+                {allSelectedOnPage ? "Desmarcar todos" : "Marcar todos"}
+              </Button>
+            )}
           </div>
 
           <div className="max-h-[360px] overflow-y-auto rounded-lg border">
