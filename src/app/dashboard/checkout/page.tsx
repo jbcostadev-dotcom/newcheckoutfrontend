@@ -65,6 +65,7 @@ const DEFAULTS: CheckoutSettings = {
   announcement_bar_bg: "#333333",
   announcement_bar_text_color: "#d4a843",
   summary_title: "Resumo do pedido",
+  summary_default_expanded: true,
   summary_show_discount: true,
   summary_coupon_enabled: true,
   step_title_font_size: "1.25rem",
@@ -460,6 +461,7 @@ export default function CheckoutCustomizationPage() {
           announcement_bar_bg: settings.announcement_bar_bg,
           announcement_bar_text_color: settings.announcement_bar_text_color,
           summary_title: settings.summary_title,
+          summary_default_expanded: settings.summary_default_expanded,
           summary_show_discount: settings.summary_show_discount,
           summary_coupon_enabled: settings.summary_coupon_enabled,
           step_title_font_size: settings.step_title_font_size,
@@ -539,6 +541,7 @@ export default function CheckoutCustomizationPage() {
       announcement_bar_bg: settings.announcement_bar_bg,
       announcement_bar_text_color: settings.announcement_bar_text_color,
       summary_title: settings.summary_title,
+      summary_default_expanded: settings.summary_default_expanded,
       summary_show_discount: settings.summary_show_discount,
       summary_coupon_enabled: settings.summary_coupon_enabled,
       step_title_font_size: settings.step_title_font_size,
@@ -940,6 +943,20 @@ export default function CheckoutCustomizationPage() {
                 placeholder="Resumo do pedido"
                 className="h-8 text-xs"
               />
+            </FieldRow>
+            <FieldRow label="Carrinho ao abrir">
+              <Select
+                value={settings.summary_default_expanded === false ? "closed" : "open"}
+                onValueChange={(value) => update("summary_default_expanded", value === "open")}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">Aberto (expandido)</SelectItem>
+                  <SelectItem value="closed">Fechado (recolhido)</SelectItem>
+                </SelectContent>
+              </Select>
             </FieldRow>
             <ToggleRow
               label="Mostrar descontos"
