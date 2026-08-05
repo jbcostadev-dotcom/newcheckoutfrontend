@@ -169,6 +169,19 @@ const BANNER_HEIGHTS = [
   { value: "lg", label: "Grande" },
 ];
 
+const CHECKOUT_THEMES = [
+  { name: "Sirius Std", primary: "#72A3EA", secondary: "#5F6B83", header: "#FFFFFF", announcement: "#5F6B83", announcementText: "#FFFFFF", darkMode: false },
+  { name: "Cloud Std", primary: "#FF7A00", secondary: "#FFFFFF", header: "#FFFFFF", announcement: "#FF7A00", announcementText: "#FFFFFF", darkMode: false },
+  { name: "Sunny Day", primary: "#FF7900", secondary: "#FFC107", header: "#FFFFFF", announcement: "#FF7900", announcementText: "#FFFFFF", darkMode: false },
+  { name: "Blue Sky", primary: "#0B9DE8", secondary: "#0785C8", header: "#FFFFFF", announcement: "#0B9DE8", announcementText: "#FFFFFF", darkMode: false },
+  { name: "All Black", primary: "#2C2C2C", secondary: "#2C2C2C", header: "#171717", announcement: "#2C2C2C", announcementText: "#FFFFFF", darkMode: true },
+  { name: "Purple Space", primary: "#7500AC", secondary: "#4E0076", header: "#FFFFFF", announcement: "#7500AC", announcementText: "#FFFFFF", darkMode: false },
+  { name: "Red Mars", primary: "#FF0000", secondary: "#B00000", header: "#FFFFFF", announcement: "#FF0000", announcementText: "#FFFFFF", darkMode: false },
+  { name: "Pink Galaxy", primary: "#E93488", secondary: "#AE1E63", header: "#FFFFFF", announcement: "#E93488", announcementText: "#FFFFFF", darkMode: false },
+  { name: "Turquoise", primary: "#39BDB1", secondary: "#D5F5F1", header: "#FFFFFF", announcement: "#39BDB1", announcementText: "#FFFFFF", darkMode: false },
+  { name: "Greener", primary: "#25CC7A", secondary: "#139E5A", header: "#FFFFFF", announcement: "#25CC7A", announcementText: "#FFFFFF", darkMode: false },
+] as const;
+
 function ColorField({
   label,
   value,
@@ -609,6 +622,20 @@ export default function CheckoutCustomizationPage() {
     footer_address: "Rua Valaderes, 123, São Paulo - SP",
   };
 
+  const applyTheme = (theme: (typeof CHECKOUT_THEMES)[number]) => {
+    setSettings((prev) => ({
+      ...prev,
+      primary_color: theme.primary,
+      secondary_color: theme.secondary,
+      dark_mode: theme.darkMode,
+      header_bg_color: theme.header,
+      header_icon_color: theme.darkMode ? "#E5E5E5" : "#666666",
+      announcement_bar_enabled: true,
+      announcement_bar_bg: theme.announcement,
+      announcement_bar_text_color: theme.announcementText,
+    }));
+  };
+
   const update = <K extends keyof CheckoutSettings>(
     key: K,
     value: CheckoutSettings[K]
@@ -701,6 +728,52 @@ export default function CheckoutCustomizationPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <div className="w-[280px] shrink-0 border-r bg-background overflow-y-auto">
+          {/* Temas */}
+          <AccordionSection title="Temas" defaultOpen={true}>
+            <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
+              Escolha um tema para aplicar uma combinação de cores ao checkout.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {CHECKOUT_THEMES.map((theme) => {
+                const isSelected =
+                  settings.primary_color === theme.primary &&
+                  settings.secondary_color === theme.secondary &&
+                  settings.header_bg_color === theme.header;
+
+                return (
+                  <button
+                    key={theme.name}
+                    type="button"
+                    onClick={() => applyTheme(theme)}
+                    aria-pressed={isSelected}
+                    className={`rounded-lg p-1 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                      isSelected
+                        ? "bg-primary/5 ring-2 ring-primary"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    <span
+                      className="flex h-14 overflow-hidden rounded-md"
+                      aria-hidden="true"
+                    >
+                      <span
+                        className="h-full w-3/5"
+                        style={{ backgroundColor: theme.primary }}
+                      />
+                      <span
+                        className="h-full w-2/5"
+                        style={{ backgroundColor: theme.secondary }}
+                      />
+                    </span>
+                    <span className="mt-1 block truncate text-[10px] leading-4 text-foreground">
+                      {theme.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </AccordionSection>
+
           {/* Cabeçalho */}
           <AccordionSection title="Cabeçalho" defaultOpen={true}>
             <ToggleRow
