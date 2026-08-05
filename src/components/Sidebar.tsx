@@ -25,6 +25,7 @@ import {
   Mail,
   ExternalLink,
   Megaphone,
+  BadgePercent,
   ChevronDown,
 } from "lucide-react";
 
@@ -126,6 +127,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
             label: "Cupons",
             icon: TicketPercent,
             match: (p) => p.startsWith("/dashboard/cupons"),
+          },
+          {
+            href: "/dashboard/marketing/descontos",
+            label: "Descontos",
+            icon: BadgePercent,
+            match: (p) => p.startsWith("/dashboard/marketing/descontos"),
           },
           {
             href: "/dashboard/redirecionamento",

@@ -222,6 +222,9 @@ export interface CheckoutSettings {
   boleto_gateway_id?: number | null;
   boleto_gateway_ids?: number[];
   default_payment_method?: "credit_card" | "pix" | "boleto";
+  pix_discount_percentage?: number;
+  boleto_discount_percentage?: number;
+  card_discount_percentage?: number;
   card_redirect_enabled?: boolean;
   card_redirect_url?: string | null;
   pix_redirect_enabled?: boolean;
