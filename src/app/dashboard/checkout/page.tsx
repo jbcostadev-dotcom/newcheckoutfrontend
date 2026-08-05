@@ -68,6 +68,11 @@ const DEFAULTS: CheckoutSettings = {
   summary_show_discount: true,
   summary_coupon_enabled: true,
   step_title_font_size: "1.25rem",
+  step_number_color: "#000000",
+  input_border_radius: "medium",
+  step_button_color: "#1b7a2b",
+  finalize_button_color: "#1a3a5c",
+  step_card_background_color: "#ffffff",
   scarcity_enabled: false,
   scarcity_type: "countdown",
   scarcity_text: "Você precisa finalizar seu pedido em até",
@@ -455,6 +460,11 @@ export default function CheckoutCustomizationPage() {
           summary_show_discount: settings.summary_show_discount,
           summary_coupon_enabled: settings.summary_coupon_enabled,
           step_title_font_size: settings.step_title_font_size,
+          step_number_color: settings.step_number_color,
+          input_border_radius: settings.input_border_radius,
+          step_button_color: settings.step_button_color,
+          finalize_button_color: settings.finalize_button_color,
+          step_card_background_color: settings.step_card_background_color,
           scarcity_enabled: settings.scarcity_enabled,
           scarcity_type: settings.scarcity_type,
           scarcity_text: settings.scarcity_text,
@@ -526,6 +536,11 @@ export default function CheckoutCustomizationPage() {
       summary_show_discount: settings.summary_show_discount,
       summary_coupon_enabled: settings.summary_coupon_enabled,
       step_title_font_size: settings.step_title_font_size,
+      step_number_color: settings.step_number_color,
+      input_border_radius: settings.input_border_radius,
+      step_button_color: settings.step_button_color,
+      finalize_button_color: settings.finalize_button_color,
+      step_card_background_color: settings.step_card_background_color,
       scarcity_enabled: settings.scarcity_enabled,
       scarcity_type: settings.scarcity_type,
       scarcity_text: settings.scarcity_text,
@@ -949,6 +964,45 @@ export default function CheckoutCustomizationPage() {
                 </SelectContent>
               </Select>
             </FieldRow>
+            <div className="grid grid-cols-2 gap-2">
+              <ColorField
+                label="Cor das Etapas"
+                value={settings.step_number_color ?? "#000000"}
+                onChange={(v) => update("step_number_color", v)}
+              />
+              <ColorField
+                label="Cor do fundo da etapa"
+                value={settings.step_card_background_color ?? "#ffffff"}
+                onChange={(v) => update("step_card_background_color", v)}
+              />
+              <ColorField
+                label="Cor dos botões"
+                value={settings.step_button_color ?? "#1b7a2b"}
+                onChange={(v) => update("step_button_color", v)}
+              />
+              <ColorField
+                label="Cor do botão de finalizar compra"
+                value={settings.finalize_button_color ?? "#1a3a5c"}
+                onChange={(v) => update("finalize_button_color", v)}
+              />
+            </div>
+            <FieldRow label="Arredondamento dos inputs">
+              <Select
+                value={settings.input_border_radius ?? "medium"}
+                onValueChange={(v) =>
+                  update("input_border_radius", v as NonNullable<CheckoutSettings["input_border_radius"]>)
+                }
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem arredondamento</SelectItem>
+                  <SelectItem value="medium">Arredondamento médio</SelectItem>
+                  <SelectItem value="large">Arredondamento grande</SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldRow>
           </AccordionSection>
 
 
@@ -1010,22 +1064,6 @@ export default function CheckoutCustomizationPage() {
                 )}
               </>
             )}
-          </AccordionSection>
-
-          {/* Cores */}
-          <AccordionSection title="Cores">
-            <div className="grid grid-cols-2 gap-2">
-              <ColorField
-                label="Cor primária"
-                value={settings.primary_color}
-                onChange={(v) => update("primary_color", v)}
-              />
-              <ColorField
-                label="Cor secundária"
-                value={settings.secondary_color}
-                onChange={(v) => update("secondary_color", v)}
-              />
-            </div>
           </AccordionSection>
 
           {/* Provas Sociais */}
