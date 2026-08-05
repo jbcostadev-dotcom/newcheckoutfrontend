@@ -75,7 +75,7 @@ const DEFAULTS: CheckoutSettings = {
   step_card_background_color: "#ffffff",
   scarcity_enabled: false,
   scarcity_type: "countdown",
-  scarcity_text: "Você precisa finalizar seu pedido em até",
+  scarcity_text: "Finalize seu pedido em até",
   scarcity_title: "Frete grátis apenas hoje!",
   scarcity_countdown_minutes: 20,
   pix_confirmation_title: "Aguardando pagamento...",
@@ -1036,7 +1036,7 @@ export default function CheckoutCustomizationPage() {
                   <Input
                     value={settings.scarcity_text ?? ""}
                     onChange={(e) => update("scarcity_text", e.target.value)}
-                    placeholder="Você precisa finalizar seu pedido em até"
+                    placeholder="Finalize seu pedido em até"
                     className="h-8 text-xs"
                   />
                 </FieldRow>
