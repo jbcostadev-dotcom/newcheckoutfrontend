@@ -78,6 +78,9 @@ const DEFAULTS: CheckoutSettings = {
   scarcity_text: "Finalize seu pedido em até",
   scarcity_title: "Frete grátis apenas hoje!",
   scarcity_countdown_minutes: 20,
+  scarcity_font_color: "#000000",
+  scarcity_counter_color: "#000000",
+  scarcity_counter_text_color: "#ffffff",
   pix_confirmation_title: "Aguardando pagamento...",
   pix_confirmation_message: null,
   pix_confirmation_logo: null,
@@ -470,6 +473,9 @@ export default function CheckoutCustomizationPage() {
           scarcity_text: settings.scarcity_text,
           scarcity_title: settings.scarcity_title,
           scarcity_countdown_minutes: settings.scarcity_countdown_minutes,
+          scarcity_font_color: settings.scarcity_font_color,
+          scarcity_counter_color: settings.scarcity_counter_color,
+          scarcity_counter_text_color: settings.scarcity_counter_text_color,
           pix_confirmation_title: settings.pix_confirmation_title,
           pix_confirmation_message: settings.pix_confirmation_message,
           pix_confirmation_logo: settings.pix_confirmation_logo,
@@ -546,6 +552,9 @@ export default function CheckoutCustomizationPage() {
       scarcity_text: settings.scarcity_text,
       scarcity_title: settings.scarcity_title,
       scarcity_countdown_minutes: settings.scarcity_countdown_minutes,
+      scarcity_font_color: settings.scarcity_font_color,
+      scarcity_counter_color: settings.scarcity_counter_color,
+      scarcity_counter_text_color: settings.scarcity_counter_text_color,
       pix_confirmation_title: settings.pix_confirmation_title,
       pix_confirmation_message: settings.pix_confirmation_message,
       footer_text: settings.footer_text,
@@ -1048,6 +1057,23 @@ export default function CheckoutCustomizationPage() {
                     className="h-8 text-xs"
                   />
                 </FieldRow>
+                <div className="grid grid-cols-2 gap-2">
+                  <ColorField
+                    label="Cor da Fonte"
+                    value={settings.scarcity_font_color ?? "#000000"}
+                    onChange={(v) => update("scarcity_font_color", v)}
+                  />
+                  <ColorField
+                    label="Cor do Contador"
+                    value={settings.scarcity_counter_color ?? "#000000"}
+                    onChange={(v) => update("scarcity_counter_color", v)}
+                  />
+                  <ColorField
+                    label="Cor da Fonte Contador"
+                    value={settings.scarcity_counter_text_color ?? "#ffffff"}
+                    onChange={(v) => update("scarcity_counter_text_color", v)}
+                  />
+                </div>
                 {(settings.scarcity_type ?? "countdown") === "countdown" && (
                   <FieldRow label="Minutos do countdown">
                     <Input
