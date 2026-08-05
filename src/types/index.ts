@@ -174,6 +174,7 @@ export interface CheckoutSettings {
   scarcity_enabled?: boolean;
   scarcity_type?: string;
   scarcity_text?: string | null;
+  scarcity_title?: string | null;
   scarcity_countdown_minutes?: number;
   pix_confirmation_title?: string;
   pix_confirmation_message?: string | null;

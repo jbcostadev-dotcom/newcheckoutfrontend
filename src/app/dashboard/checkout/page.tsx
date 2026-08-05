@@ -70,8 +70,9 @@ const DEFAULTS: CheckoutSettings = {
   step_title_font_size: "1.25rem",
   scarcity_enabled: false,
   scarcity_type: "countdown",
-  scarcity_text: null,
-  scarcity_countdown_minutes: 15,
+  scarcity_text: "Você precisa finalizar seu pedido em até",
+  scarcity_title: "Frete grátis apenas hoje!",
+  scarcity_countdown_minutes: 20,
   pix_confirmation_title: "Aguardando pagamento...",
   pix_confirmation_message: null,
   pix_confirmation_logo: null,
@@ -457,6 +458,7 @@ export default function CheckoutCustomizationPage() {
           scarcity_enabled: settings.scarcity_enabled,
           scarcity_type: settings.scarcity_type,
           scarcity_text: settings.scarcity_text,
+          scarcity_title: settings.scarcity_title,
           scarcity_countdown_minutes: settings.scarcity_countdown_minutes,
           pix_confirmation_title: settings.pix_confirmation_title,
           pix_confirmation_message: settings.pix_confirmation_message,
@@ -527,6 +529,7 @@ export default function CheckoutCustomizationPage() {
       scarcity_enabled: settings.scarcity_enabled,
       scarcity_type: settings.scarcity_type,
       scarcity_text: settings.scarcity_text,
+      scarcity_title: settings.scarcity_title,
       scarcity_countdown_minutes: settings.scarcity_countdown_minutes,
       pix_confirmation_title: settings.pix_confirmation_title,
       pix_confirmation_message: settings.pix_confirmation_message,
@@ -979,7 +982,15 @@ export default function CheckoutCustomizationPage() {
                   <Input
                     value={settings.scarcity_text ?? ""}
                     onChange={(e) => update("scarcity_text", e.target.value)}
-                    placeholder="Ex: Oferta por tempo limitado!"
+                    placeholder="Você precisa finalizar seu pedido em até"
+                    className="h-8 text-xs"
+                  />
+                </FieldRow>
+                <FieldRow label="Título personalizado">
+                  <Input
+                    value={settings.scarcity_title ?? ""}
+                    onChange={(e) => update("scarcity_title", e.target.value)}
+                    placeholder="Frete grátis apenas hoje!"
                     className="h-8 text-xs"
                   />
                 </FieldRow>
@@ -989,9 +1000,9 @@ export default function CheckoutCustomizationPage() {
                       type="number"
                       min={1}
                       max={999}
-                      value={settings.scarcity_countdown_minutes ?? 15}
+                      value={settings.scarcity_countdown_minutes ?? 20}
                       onChange={(e) =>
-                        update("scarcity_countdown_minutes", parseInt(e.target.value) || 15)
+                        update("scarcity_countdown_minutes", parseInt(e.target.value) || 20)
                       }
                       className="h-8 text-xs"
                     />
