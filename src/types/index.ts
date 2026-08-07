@@ -5,6 +5,40 @@ export interface User {
   name: string;
   email: string;
   phone?: string | null;
+  role?: "super_admin" | "merchant" | string;
+}
+
+export type AchievementType = "plate" | "badge";
+export type AchievementMetric =
+  | "revenue_total"
+  | "orders_paid"
+  | "revenue_24h"
+  | "orders_paid_24h";
+
+export interface Achievement {
+  id: number;
+  type: AchievementType;
+  metric: AchievementMetric;
+  target_value: number;
+  target: number;
+  is_monetary: boolean;
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  image_url?: string | null;
+  active: boolean;
+  sort_order: number;
+  current_value: number;
+  current: number;
+  progress: number;
+  unlocked: boolean;
+  unlocked_at?: string | null;
+}
+
+export interface AchievementsResponse {
+  summary: { revenue_total: number; unlocked_count: number; total_count: number };
+  plates: Achievement[];
+  badges: Achievement[];
 }
 
 export interface ShopifyInjectStatus {

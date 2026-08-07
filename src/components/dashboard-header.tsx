@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, User, ChevronDown } from "lucide-react";
+import { LogOut, Settings, User, ChevronDown, Trophy, Shield } from "lucide-react";
 
 import { cn, initials } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +47,18 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/dashboard/conquistas">
+            <Trophy className="mr-2 h-4 w-4" /> Conquistas
+          </Link>
+        </Button>
+        {user?.role === "super_admin" && (
+          <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+            <Link href="/dashboard/admin/conquistas">
+              <Shield className="mr-2 h-4 w-4" /> Administração
+            </Link>
+          </Button>
+        )}
         <ThemeToggle />
 
         <DropdownMenu>

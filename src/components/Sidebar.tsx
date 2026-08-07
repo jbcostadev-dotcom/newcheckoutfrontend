@@ -27,6 +27,7 @@ import {
   Megaphone,
   BadgePercent,
   ChevronDown,
+  Trophy,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -91,6 +92,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
         label: "Clientes",
         icon: Users,
         match: (p) => p.startsWith("/dashboard/clientes"),
+      },
+      {
+        href: "/dashboard/conquistas",
+        label: "Conquistas",
+        icon: Trophy,
+        match: (p) => p.startsWith("/dashboard/conquistas"),
       },
     ],
   },
@@ -260,7 +267,7 @@ export function Sidebar() {
           </div>
           <div className="flex flex-col leading-none">
             <span className="text-sm font-bold tracking-tight">
-              Checkout PRO
+              jCheckout
             </span>
             <span className="text-[11px] text-muted-foreground">Painel</span>
           </div>
