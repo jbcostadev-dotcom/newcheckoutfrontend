@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Checkout PRO — Gerencie sua loja",
+  title: "jCheckout — Gerencie sua loja",
   description:
     "Plataforma de checkout transparente para lojas Shopify. Personalize, integre gateways e converta mais.",
 };
