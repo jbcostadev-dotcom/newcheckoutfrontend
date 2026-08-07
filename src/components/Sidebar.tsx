@@ -28,6 +28,7 @@ import {
   BadgePercent,
   ChevronDown,
   Trophy,
+  Monitor,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -394,7 +395,7 @@ export function Sidebar() {
 
       {/* Create store dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
           <DialogHeader>
             <DialogTitle>Criar nova loja</DialogTitle>
             <DialogDescription>
@@ -402,9 +403,16 @@ export function Sidebar() {
               Shopify ou usar como landing page.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-7 px-6 py-6">
             <div className="space-y-2">
-              <Label htmlFor="store-name">Nome da loja</Label>
+              <div className="space-y-0.5">
+                <Label htmlFor="store-name" className="text-base font-semibold text-foreground">
+                  Qual nome da sua loja?
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Esse será o nome exibido nos e-mails da sua loja.
+                </p>
+              </div>
               <Input
                 id="store-name"
                 placeholder="Ex: Minha Loja Incrível"
@@ -413,25 +421,49 @@ export function Sidebar() {
                 autoFocus
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="store-type">Tipo</Label>
-              <Select
-                value={type}
-                onValueChange={(v) =>
-                  setType(v as "Shopify" | "Landing Page")
-                }
+            <div className="space-y-3">
+              <Label className="text-base font-semibold text-foreground">
+                Qual formato da sua loja?
+              </Label>
+              <div
+                className="grid gap-3 sm:grid-cols-2"
+                role="radiogroup"
+                aria-label="Formato da loja"
               >
-                <SelectTrigger id="store-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Shopify">Shopify</SelectItem>
-                  <SelectItem value="Landing Page">Landing Page</SelectItem>
-                </SelectContent>
-              </Select>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={type === "Shopify"}
+                  onClick={() => setType("Shopify")}
+                  className={cn(
+                    "flex min-h-32 flex-col items-center justify-center gap-3 rounded-lg border-2 px-4 py-5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    type === "Shopify"
+                      ? "border-primary bg-primary/5 text-foreground"
+                      : "border-border bg-background text-foreground hover:border-primary/50 hover:bg-accent/40"
+                  )}
+                >
+                  <ShoppingBag className="h-8 w-8 text-primary" aria-hidden="true" />
+                  <span>Shopify</span>
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={type === "Landing Page"}
+                  onClick={() => setType("Landing Page")}
+                  className={cn(
+                    "flex min-h-32 flex-col items-center justify-center gap-3 rounded-lg border-2 px-4 py-5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    type === "Landing Page"
+                      ? "border-primary bg-primary/5 text-foreground"
+                      : "border-border bg-background text-foreground hover:border-primary/50 hover:bg-accent/40"
+                  )}
+                >
+                  <Monitor className="h-8 w-8 text-primary" aria-hidden="true" />
+                  <span>Landing Page</span>
+                </button>
+              </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="border-t bg-muted/20 px-6 py-4 sm:justify-between">
             <Button
               variant="outline"
               onClick={() => setIsOpen(false)}
