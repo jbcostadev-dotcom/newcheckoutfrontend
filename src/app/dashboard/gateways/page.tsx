@@ -107,6 +107,7 @@ const METHOD_ICON: Record<string, React.ReactNode> = {
 };
 
 interface FormData {
+  name: string;
   provider: GatewayProvider;
   api_key: string;
   secret_key: string;
@@ -118,6 +119,7 @@ interface FormData {
 }
 
 const EMPTY_FORM: FormData = {
+  name: "",
   provider: "unipay",
   api_key: "",
   secret_key: "",
@@ -307,6 +309,7 @@ export default function GatewaysPage() {
     const padded = [...rates, ...Array(Math.max(0, 12 - rates.length)).fill(null)];
     setEditingId(gw.id);
     setForm({
+      name: gw.name ?? "",
       provider: gw.provider as GatewayProvider,
       api_key: gw.api_key ?? "",
       secret_key: gw.secret_key ?? "",
@@ -323,9 +326,14 @@ export default function GatewaysPage() {
 
   const handleSave = async () => {
     if (!selectedStore) return;
+    if (!form.name.trim()) {
+      toast.error("Informe um nome para a gateway.");
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
+        name: form.name.trim(),
         provider: form.provider,
         api_key: form.api_key,
         secret_key: form.secret_key,
@@ -475,7 +483,7 @@ export default function GatewaysPage() {
                           return (
                             <div key={gwId} className="flex items-center gap-1.5 rounded-md border border-border/40 bg-card px-2.5 py-1.5">
                               <span className="flex-1 text-xs font-medium truncate">
-                                {gw ? (GATEWAY_LABELS[gw.provider] ?? gw.provider) : `#${gwId}`}
+                                {gw ? (gw.name || GATEWAY_LABELS[gw.provider] || gw.provider) : `#${gwId}`}
                               </span>
                               <Badge variant={idx === 0 ? "success" : "secondary"} className="text-[9px] px-1.5 py-0 h-4 shrink-0">
                                 {idx === 0 ? "Principal" : `Fallback ${idx}`}
@@ -501,7 +509,7 @@ export default function GatewaysPage() {
                           <SelectContent>
                             {available.map((g) => (
                               <SelectItem key={g.id} value={String(g.id)}>
-                                {GATEWAY_LABELS[g.provider] ?? g.provider}
+                                {g.name || GATEWAY_LABELS[g.provider] || g.provider}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -542,7 +550,7 @@ export default function GatewaysPage() {
                           return (
                             <div key={gwId} className="flex items-center gap-1.5 rounded-md border border-border/40 bg-card px-2.5 py-1.5">
                               <span className="flex-1 text-xs font-medium truncate">
-                                {gw ? (GATEWAY_LABELS[gw.provider] ?? gw.provider) : `#${gwId}`}
+                                {gw ? (gw.name || GATEWAY_LABELS[gw.provider] || gw.provider) : `#${gwId}`}
                               </span>
                               <Badge variant={idx === 0 ? "success" : "secondary"} className="text-[9px] px-1.5 py-0 h-4 shrink-0">
                                 {idx === 0 ? "Principal" : `Fallback ${idx}`}
@@ -568,7 +576,7 @@ export default function GatewaysPage() {
                           <SelectContent>
                             {available.map((g) => (
                               <SelectItem key={g.id} value={String(g.id)}>
-                                {GATEWAY_LABELS[g.provider] ?? g.provider}
+                                {g.name || GATEWAY_LABELS[g.provider] || g.provider}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -609,7 +617,7 @@ export default function GatewaysPage() {
                           return (
                             <div key={gwId} className="flex items-center gap-1.5 rounded-md border border-border/40 bg-card px-2.5 py-1.5">
                               <span className="flex-1 text-xs font-medium truncate">
-                                {gw ? (GATEWAY_LABELS[gw.provider] ?? gw.provider) : `#${gwId}`}
+                                {gw ? (gw.name || GATEWAY_LABELS[gw.provider] || gw.provider) : `#${gwId}`}
                               </span>
                               <Badge variant={idx === 0 ? "success" : "secondary"} className="text-[9px] px-1.5 py-0 h-4 shrink-0">
                                 {idx === 0 ? "Principal" : `Fallback ${idx}`}
@@ -635,7 +643,7 @@ export default function GatewaysPage() {
                           <SelectContent>
                             {available.map((g) => (
                               <SelectItem key={g.id} value={String(g.id)}>
-                                {GATEWAY_LABELS[g.provider] ?? g.provider}
+                                {g.name || GATEWAY_LABELS[g.provider] || g.provider}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -711,7 +719,7 @@ export default function GatewaysPage() {
                     {/* Name + badge */}
                     <div className="flex items-center gap-2 mb-1.5">
                       <h3 className="text-sm font-bold leading-tight">
-                        {GATEWAY_LABELS[gw.provider] ?? gw.provider}
+                        {gw.name || GATEWAY_LABELS[gw.provider] || gw.provider}
                       </h3>
                       {(meta as { isNew?: boolean }).isNew && (
                         <Badge
@@ -802,6 +810,23 @@ export default function GatewaysPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="gateway-name">Nome</Label>
+              <Input
+                id="gateway-name"
+                placeholder="Ex.: Unipay principal"
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+                required
+                maxLength={255}
+              />
+              <p className="text-xs text-muted-foreground">
+                Use um nome que facilite identificar esta gateway nos fallbacks.
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label>Provedor</Label>
               <Select
@@ -964,7 +989,7 @@ export default function GatewaysPage() {
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving || !form.name.trim()}>
               {saving
                 ? "Salvando..."
                 : editingId

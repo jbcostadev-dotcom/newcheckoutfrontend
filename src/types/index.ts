@@ -168,6 +168,7 @@ export type GatewayProvider =
 export interface Gateway {
   id: number;
   store_id: number;
+  name?: string | null;
   provider: GatewayProvider | string;
   api_key?: string | null;
   secret_key?: string | null;
