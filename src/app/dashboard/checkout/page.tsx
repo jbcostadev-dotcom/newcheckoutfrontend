@@ -69,6 +69,7 @@ const DEFAULTS: CheckoutSettings = {
   summary_default_expanded: true,
   summary_show_discount: true,
   summary_coupon_enabled: true,
+  quantity_selector_enabled: true,
   step_title_font_size: "1.25rem",
   step_number_color: "#000000",
   input_border_radius: "medium",
@@ -466,6 +467,7 @@ export default function CheckoutCustomizationPage() {
           summary_default_expanded: settings.summary_default_expanded,
           summary_show_discount: settings.summary_show_discount,
           summary_coupon_enabled: settings.summary_coupon_enabled,
+          quantity_selector_enabled: settings.quantity_selector_enabled,
           step_title_font_size: settings.step_title_font_size,
           step_number_color: settings.step_number_color,
           input_border_radius: settings.input_border_radius,
@@ -547,6 +549,7 @@ export default function CheckoutCustomizationPage() {
       summary_default_expanded: settings.summary_default_expanded,
       summary_show_discount: settings.summary_show_discount,
       summary_coupon_enabled: settings.summary_coupon_enabled,
+      quantity_selector_enabled: settings.quantity_selector_enabled,
       step_title_font_size: settings.step_title_font_size,
       step_number_color: settings.step_number_color,
       input_border_radius: settings.input_border_radius,
@@ -980,6 +983,15 @@ export default function CheckoutCustomizationPage() {
           </AccordionSection>
 
           {/* Conteúdo das etapas */}
+          <AccordionSection title="Configurações">
+            <ToggleRow
+              label="Ativar seletor de quantidade"
+              description="Permite ao cliente adicionar mais unidades do mesmo produto no resumo do pedido"
+              checked={settings.quantity_selector_enabled ?? true}
+              onCheckedChange={(v) => update("quantity_selector_enabled", v)}
+            />
+          </AccordionSection>
+
           <AccordionSection title="Conteúdo das etapas">
             <FieldRow label="Tamanho da fonte dos títulos">
               <Select
