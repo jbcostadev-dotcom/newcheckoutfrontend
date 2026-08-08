@@ -21,13 +21,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ProductSelectorDialog } from "@/components/product-selector-dialog";
 
 interface OrderBumpFormDialogProps {
@@ -54,8 +47,6 @@ const EMPTY_FORM: OrderBumpFormData = {
   button_color: "#13BF8C",
   button_text_color: "#FFFFFF",
   button_label: "Quero essa oferta",
-  scarcity_timer_enabled: false,
-  scarcity_timer_minutes: 10,
   is_active: true,
 };
 
@@ -77,6 +68,7 @@ export function OrderBumpFormDialog({
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [offerSelectorOpen, setOfferSelectorOpen] = useState(false);
   const [targetSelectorOpen, setTargetSelectorOpen] = useState(false);
   const isEditing = Boolean(orderBump);
 
@@ -100,8 +92,6 @@ export function OrderBumpFormDialog({
           button_color: orderBump.button_color,
           button_text_color: orderBump.button_text_color,
           button_label: orderBump.button_label,
-          scarcity_timer_enabled: orderBump.scarcity_timer_enabled ?? false,
-          scarcity_timer_minutes: Number(orderBump.scarcity_timer_minutes) || 10,
           is_active: orderBump.is_active,
         });
       } else {
@@ -118,10 +108,6 @@ export function OrderBumpFormDialog({
       .get<Product[]>(`/stores/${selectedStore.id}/products`)
       .then((data) => {
         setProducts(Array.isArray(data) ? data : []);
-        // Seleciona o primeiro produto automaticamente ao criar.
-        if (!orderBump && data.length > 0 && form.product_id === 0) {
-          setForm((f) => ({ ...f, product_id: data[0].id }));
-        }
       })
       .catch(() => {
         toast.error("Erro ao carregar produtos.");
@@ -143,6 +129,10 @@ export function OrderBumpFormDialog({
 
   const handleTargetProductSelection = (ids: number[]) => {
     setForm((f) => ({ ...f, target_product_id: ids[0] ?? null }));
+  };
+
+  const handleOfferProductSelection = (ids: number[]) => {
+    setForm((f) => ({ ...f, product_id: ids[0] ?? 0 }));
   };
 
   const previewPrice = useMemo(() => {
@@ -214,7 +204,7 @@ export function OrderBumpFormDialog({
               <div className="text-sm font-semibold">O que oferecer</div>
 
               <div className="space-y-2">
-                <Label htmlFor="ob-product">Produto da oferta</Label>
+                <Label>Produto da oferta</Label>
                 {loadingProducts ? (
                   <p className="text-sm text-muted-foreground">Carregando produtos…</p>
                 ) : products.length === 0 ? (
@@ -223,23 +213,50 @@ export function OrderBumpFormDialog({
                     Cadastre produtos na loja antes de criar um order bump.
                   </div>
                 ) : (
-                  <Select
-                    value={String(form.product_id)}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, product_id: Number(v) }))
-                    }
-                  >
-                    <SelectTrigger id="ob-product">
-                      <SelectValue placeholder="Selecione um produto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)}>
-                          {p.name} — {formatCurrency(Number(p.price))}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() => setOfferSelectorOpen(true)}
+                    >
+                      Adicionar produto(s)
+                    </Button>
+
+                    {selectedProduct && (
+                      <div className="flex items-center gap-3 rounded-lg border p-2">
+                        {selectedProduct.image_url ? (
+                          <img
+                            src={selectedProduct.image_url}
+                            alt=""
+                            className="h-10 w-10 rounded-md object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {selectedProduct.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatCurrency(Number(selectedProduct.price))}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => setForm((f) => ({ ...f, product_id: 0 }))}
+                          aria-label="Remover produto da oferta"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -497,52 +514,6 @@ export function OrderBumpFormDialog({
               />
             </div>
 
-            {/* Cronômetro de escassez */}
-            <section className="space-y-3 rounded-lg border bg-card p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium">Cronômetro de escassez</p>
-                  <p className="text-xs text-muted-foreground">
-                    Exibe uma contagem regressiva no topo da oferta.
-                  </p>
-                </div>
-                <Switch
-                  checked={form.scarcity_timer_enabled}
-                  onCheckedChange={(v) =>
-                    setForm((f) => ({ ...f, scarcity_timer_enabled: v }))
-                  }
-                />
-              </div>
-              {form.scarcity_timer_enabled && (
-                <div className="space-y-2">
-                  <Label htmlFor="ob-scarcity-minutes">Duração</Label>
-                  <div className="relative">
-                    <Input
-                      id="ob-scarcity-minutes"
-                      type="number"
-                      min={1}
-                      max={1440}
-                      step={1}
-                      value={form.scarcity_timer_minutes}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          scarcity_timer_minutes: Number(e.target.value) || 10,
-                        }))
-                      }
-                      className="pr-20"
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                      minutos
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Padrão: 10 minutos. Limite máximo: 24 horas.
-                  </p>
-                </div>
-              )}
-            </section>
-
             {/* Cores */}
             <section className="space-y-3">
               <div className="text-sm font-semibold">Personalize seu Order Bump</div>
@@ -591,20 +562,6 @@ export function OrderBumpFormDialog({
               >
                 {selectedProduct ? (
                   <>
-                    {form.scarcity_timer_enabled && (
-                      <div
-                        className="-mx-3 -mt-3 mb-3 flex items-center justify-between gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wide"
-                        style={{
-                          background: form.button_color,
-                          color: form.button_text_color,
-                        }}
-                      >
-                        <span>Oferta especial para você</span>
-                        <span className="rounded-full bg-black/15 px-2 py-0.5 font-mono text-[10px] normal-case tracking-normal">
-                          {formatCountdown(Math.max(1, form.scarcity_timer_minutes) * 60)}
-                        </span>
-                      </div>
-                    )}
                     <div className="flex items-start gap-3">
                       {selectedProduct.image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -675,6 +632,14 @@ export function OrderBumpFormDialog({
       </Dialog>
 
       <ProductSelectorDialog
+        open={offerSelectorOpen}
+        onOpenChange={setOfferSelectorOpen}
+        selectedIds={form.product_id ? [form.product_id] : []}
+        onConfirm={handleOfferProductSelection}
+        selectionMode="single"
+      />
+
+      <ProductSelectorDialog
         open={targetSelectorOpen}
         onOpenChange={setTargetSelectorOpen}
         selectedIds={form.target_product_id ? [form.target_product_id] : []}
@@ -683,12 +648,6 @@ export function OrderBumpFormDialog({
       />
     </>
   );
-}
-
-function formatCountdown(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function PayMethodToggle({

@@ -190,6 +190,9 @@ export interface CheckoutSettings {
   banner_url?: string | null;
   banner_height?: string;
   enable_order_bump: boolean;
+  order_bump_display_mode?: "stacked" | "carousel";
+  order_bump_scarcity_timer_enabled?: boolean;
+  order_bump_scarcity_timer_minutes?: number;
   dark_mode: boolean;
   button_text?: string | null;
   banner_message?: string | null;
@@ -449,8 +452,6 @@ export interface OrderBump {
   button_color: string;
   button_text_color: string;
   button_label: string;
-  scarcity_timer_enabled: boolean;
-  scarcity_timer_minutes: number;
   is_active: boolean;
   product?: Pick<Product, "id" | "name" | "price" | "image_url"> | null;
   target_product?: Pick<Product, "id" | "name" | "price"> | null;
@@ -475,8 +476,6 @@ export interface OrderBumpFormData {
   button_color: string;
   button_text_color: string;
   button_label: string;
-  scarcity_timer_enabled: boolean;
-  scarcity_timer_minutes: number;
   is_active: boolean;
 }
 

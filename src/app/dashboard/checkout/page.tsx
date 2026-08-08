@@ -53,6 +53,9 @@ const DEFAULTS: CheckoutSettings = {
   banner_url: null,
   banner_height: "md",
   enable_order_bump: false,
+  order_bump_display_mode: "stacked",
+  order_bump_scarcity_timer_enabled: false,
+  order_bump_scarcity_timer_minutes: 10,
   dark_mode: true,
   button_text: "Finalizar Compra",
   banner_message: "Digite aqui a mensagem",
@@ -451,6 +454,9 @@ export default function CheckoutCustomizationPage() {
           banner_url: bannerPreview ?? settings.banner_url,
           banner_height: settings.banner_height,
           enable_order_bump: settings.enable_order_bump,
+          order_bump_display_mode: settings.order_bump_display_mode,
+          order_bump_scarcity_timer_enabled: settings.order_bump_scarcity_timer_enabled,
+          order_bump_scarcity_timer_minutes: settings.order_bump_scarcity_timer_minutes,
           dark_mode: settings.dark_mode,
           button_text: settings.button_text,
           banner_message: settings.banner_message,
@@ -533,6 +539,9 @@ export default function CheckoutCustomizationPage() {
       secondary_color: settings.secondary_color,
       banner_height: settings.banner_height,
       enable_order_bump: settings.enable_order_bump,
+      order_bump_display_mode: settings.order_bump_display_mode,
+      order_bump_scarcity_timer_enabled: settings.order_bump_scarcity_timer_enabled,
+      order_bump_scarcity_timer_minutes: settings.order_bump_scarcity_timer_minutes,
       dark_mode: settings.dark_mode,
       button_text: settings.button_text,
       banner_message: settings.banner_message,
@@ -1126,6 +1135,63 @@ export default function CheckoutCustomizationPage() {
                   </FieldRow>
                 )}
               </>
+            )}
+          </AccordionSection>
+
+          {/* Cronometro de escassez dos order bumps */}
+          <AccordionSection title="Order Bump">
+            <FieldRow label="Exibição dos Order Bumps">
+              <Select
+                value={settings.order_bump_display_mode ?? "stacked"}
+                onValueChange={(value) =>
+                  update(
+                    "order_bump_display_mode",
+                    value as NonNullable<CheckoutSettings["order_bump_display_mode"]>
+                  )
+                }
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="stacked">Empilhado</SelectItem>
+                  <SelectItem value="carousel">Carrossel</SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldRow>
+            <ToggleRow
+              label="Cronômetro de escassez"
+              description="Exibir uma contagem regressiva em todos os order bumps"
+              checked={settings.order_bump_scarcity_timer_enabled ?? false}
+              onCheckedChange={(enabled) => {
+                update("order_bump_scarcity_timer_enabled", enabled);
+                if (enabled && !settings.order_bump_scarcity_timer_minutes) {
+                  update("order_bump_scarcity_timer_minutes", 10);
+                }
+              }}
+            />
+            {(settings.order_bump_scarcity_timer_enabled ?? false) && (
+              <FieldRow label="Duração do cronômetro">
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={1440}
+                    step={1}
+                    value={settings.order_bump_scarcity_timer_minutes ?? 10}
+                    onChange={(e) =>
+                      update(
+                        "order_bump_scarcity_timer_minutes",
+                        parseInt(e.target.value) || 10
+                      )
+                    }
+                    className="h-8 pr-20 text-xs"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    minutos
+                  </span>
+                </div>
+              </FieldRow>
             )}
           </AccordionSection>
 
