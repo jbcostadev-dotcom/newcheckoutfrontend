@@ -65,6 +65,7 @@ const DEFAULTS: CheckoutSettings = {
   announcement_bar_bg: "#333333",
   announcement_bar_text_color: "#d4a843",
   summary_title: "Resumo do pedido",
+  summary_total_text_color: "#00A37C",
   summary_default_expanded: true,
   summary_show_discount: true,
   summary_coupon_enabled: true,
@@ -461,6 +462,7 @@ export default function CheckoutCustomizationPage() {
           announcement_bar_bg: settings.announcement_bar_bg,
           announcement_bar_text_color: settings.announcement_bar_text_color,
           summary_title: settings.summary_title,
+          summary_total_text_color: settings.summary_total_text_color,
           summary_default_expanded: settings.summary_default_expanded,
           summary_show_discount: settings.summary_show_discount,
           summary_coupon_enabled: settings.summary_coupon_enabled,
@@ -541,6 +543,7 @@ export default function CheckoutCustomizationPage() {
       announcement_bar_bg: settings.announcement_bar_bg,
       announcement_bar_text_color: settings.announcement_bar_text_color,
       summary_title: settings.summary_title,
+      summary_total_text_color: settings.summary_total_text_color,
       summary_default_expanded: settings.summary_default_expanded,
       summary_show_discount: settings.summary_show_discount,
       summary_coupon_enabled: settings.summary_coupon_enabled,
@@ -944,6 +947,11 @@ export default function CheckoutCustomizationPage() {
                 className="h-8 text-xs"
               />
             </FieldRow>
+            <ColorField
+              label="Cor da fonte do valor total"
+              value={settings.summary_total_text_color ?? "#00A37C"}
+              onChange={(v) => update("summary_total_text_color", v)}
+            />
             <FieldRow label="Carrinho ao abrir">
               <Select
                 value={settings.summary_default_expanded === false ? "closed" : "open"}
