@@ -121,6 +121,8 @@ const DEFAULTS: CheckoutSettings = {
   boleto_enabled: false,
   boleto_gateway_id: null,
   default_payment_method: "credit_card",
+  card_pre_selected_installment: 1,
+  card_installment_limit: 12,
 };
 
 interface SocialProofForm {
@@ -522,6 +524,8 @@ export default function CheckoutCustomizationPage() {
           boleto_enabled: settings.boleto_enabled,
           boleto_gateway_id: settings.boleto_gateway_id,
           default_payment_method: settings.default_payment_method,
+          card_pre_selected_installment: settings.card_pre_selected_installment,
+          card_installment_limit: settings.card_installment_limit,
         },
       },
       "*"
@@ -606,6 +610,8 @@ export default function CheckoutCustomizationPage() {
       boleto_enabled: settings.boleto_enabled,
       boleto_gateway_id: settings.boleto_gateway_id,
       default_payment_method: settings.default_payment_method,
+      card_pre_selected_installment: settings.card_pre_selected_installment,
+      card_installment_limit: settings.card_installment_limit,
     };
   };
 
@@ -999,6 +1005,75 @@ export default function CheckoutCustomizationPage() {
               checked={settings.quantity_selector_enabled ?? true}
               onCheckedChange={(v) => update("quantity_selector_enabled", v)}
             />
+            <FieldRow label="Pagamento pré-selecionado">
+              <Select
+                value={settings.default_payment_method ?? "credit_card"}
+                onValueChange={(value) =>
+                  update(
+                    "default_payment_method",
+                    value as NonNullable<CheckoutSettings["default_payment_method"]>
+                  )
+                }
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit_card">Cartão de crédito</SelectItem>
+                  <SelectItem value="pix">Pix</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldRow>
+            <FieldRow label="Limite de parcelas">
+              <Select
+                value={String(settings.card_installment_limit ?? 12)}
+                onValueChange={(value) => {
+                  const limit = Number(value);
+                  setSettings((previous) => ({
+                    ...previous,
+                    card_installment_limit: limit,
+                    card_pre_selected_installment: Math.min(
+                      previous.card_pre_selected_installment ?? 1,
+                      limit
+                    ),
+                  }));
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, index) => index + 1).map((installments) => (
+                    <SelectItem key={installments} value={String(installments)}>
+                      Até {installments}x
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FieldRow>
+            <FieldRow label="Parcela pré-selecionada">
+              <Select
+                value={String(settings.card_pre_selected_installment ?? 1)}
+                onValueChange={(value) =>
+                  update("card_pre_selected_installment", Number(value))
+                }
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from(
+                    { length: settings.card_installment_limit ?? 12 },
+                    (_, index) => index + 1
+                  ).map((installments) => (
+                    <SelectItem key={installments} value={String(installments)}>
+                      {installments}x
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FieldRow>
           </AccordionSection>
 
           <AccordionSection title="Conteúdo das etapas">

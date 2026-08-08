@@ -114,8 +114,6 @@ interface FormData {
   installment_type: "default" | "custom";
   default_installment_rate: number;
   installment_rates: (number | null)[];
-  pre_selected_installment: number;
-  installment_limit: number;
   interest_free_installments: number;
 }
 
@@ -127,8 +125,6 @@ const EMPTY_FORM: FormData = {
   installment_type: "default",
   default_installment_rate: 3.14,
   installment_rates: Array(12).fill(null),
-  pre_selected_installment: 1,
-  installment_limit: 12,
   interest_free_installments: 1,
 };
 
@@ -165,13 +161,8 @@ export default function GatewaysPage() {
     card_gateway_ids: [] as number[],
     boleto_enabled: false,
     boleto_gateway_ids: [] as number[],
-    default_payment_method: "credit_card" as "credit_card" | "pix" | "boleto",
   });
   const [savingPayment, setSavingPayment] = useState(false);
-  const [cardInstallmentSettings, setCardInstallmentSettings] = useState({
-    pre_selected_installment: 1,
-    installment_limit: 12,
-  });
 
   const fetchGateways = async () => {
     if (!selectedStore) return;
@@ -201,7 +192,6 @@ export default function GatewaysPage() {
         card_gateway_ids: data.card_gateway_ids ?? (data.card_gateway_id ? [data.card_gateway_id] : []),
         boleto_enabled: data.boleto_enabled ?? false,
         boleto_gateway_ids: data.boleto_gateway_ids ?? (data.boleto_gateway_id ? [data.boleto_gateway_id] : []),
-        default_payment_method: data.default_payment_method ?? "credit_card",
       });
     } catch {
       // silent — settings may not exist yet
@@ -254,40 +244,7 @@ export default function GatewaysPage() {
         boleto_enabled: paymentSettings.boleto_enabled,
         boleto_gateway_ids: paymentSettings.boleto_gateway_ids,
         boleto_gateway_id: paymentSettings.boleto_gateway_ids[0] ?? null,
-        default_payment_method: paymentSettings.default_payment_method,
       });
-
-      if (primaryCardGateway) {
-        const installmentLimit = clampInstallment(cardInstallmentSettings.installment_limit);
-        const preSelectedInstallment = clampInstallment(
-          cardInstallmentSettings.pre_selected_installment,
-          installmentLimit
-        );
-
-        await api.put(
-          `/stores/${selectedStore.id}/gateways/${primaryCardGateway.id}`,
-          {
-            pre_selected_installment: preSelectedInstallment,
-            installment_limit: installmentLimit,
-          }
-        );
-
-        setCardInstallmentSettings({
-          pre_selected_installment: preSelectedInstallment,
-          installment_limit: installmentLimit,
-        });
-        setGateways((prev) =>
-          prev.map((gateway) =>
-            gateway.id === primaryCardGateway.id
-              ? {
-                  ...gateway,
-                  pre_selected_installment: preSelectedInstallment,
-                  installment_limit: installmentLimit,
-                }
-              : gateway
-          )
-        );
-      }
 
       toast.success("Métodos de pagamento salvos!");
     } catch {
@@ -332,6 +289,8 @@ export default function GatewaysPage() {
     });
   };
 
+  const activeGateways = gateways.filter((gateway) => gateway.is_active);
+
   const getAvailableGateways = (listKey: GatewayListKey) => {
     const usedIds = paymentSettings[listKey];
     return activeGateways.filter((g) => !usedIds.includes(g.id));
@@ -346,7 +305,6 @@ export default function GatewaysPage() {
   const openEdit = (gw: Gateway) => {
     const rates = gw.installment_rates ?? Array(12).fill(null);
     const padded = [...rates, ...Array(Math.max(0, 12 - rates.length)).fill(null)];
-    const installmentLimit = clampInstallment(gw.installment_limit ?? 12);
     setEditingId(gw.id);
     setForm({
       provider: gw.provider as GatewayProvider,
@@ -356,14 +314,8 @@ export default function GatewaysPage() {
       installment_type: gw.installment_type ?? "default",
       default_installment_rate: gw.default_installment_rate ?? 3.14,
       installment_rates: padded.slice(0, 12),
-      pre_selected_installment: clampInstallment(
-        gw.pre_selected_installment ?? 1,
-        installmentLimit
-      ),
-      installment_limit: installmentLimit,
       interest_free_installments: clampInstallment(
-        gw.interest_free_installments ?? 1,
-        installmentLimit
+        gw.interest_free_installments ?? 1
       ),
     });
     setIsOpen(true);
@@ -381,8 +333,6 @@ export default function GatewaysPage() {
         installment_type: form.installment_type,
         default_installment_rate: form.default_installment_rate,
         installment_rates: form.installment_type === "custom" ? form.installment_rates : Array(12).fill(form.default_installment_rate),
-        pre_selected_installment: form.pre_selected_installment,
-        installment_limit: form.installment_limit,
         interest_free_installments: form.interest_free_installments,
       };
       if (editingId) {
@@ -456,27 +406,6 @@ export default function GatewaysPage() {
     });
   };
 
-  const activeGateways = gateways.filter((g) => g.is_active);
-  const primaryCardGateway =
-    paymentSettings.card_gateway_ids
-      .map((id) => activeGateways.find((gateway) => gateway.id === id))
-      .find((gateway): gateway is Gateway => Boolean(gateway)) ?? activeGateways[0] ?? null;
-
-  useEffect(() => {
-    const installmentLimit = clampInstallment(primaryCardGateway?.installment_limit ?? 12);
-    setCardInstallmentSettings({
-      pre_selected_installment: clampInstallment(
-        primaryCardGateway?.pre_selected_installment ?? 1,
-        installmentLimit
-      ),
-      installment_limit: installmentLimit,
-    });
-  }, [
-    primaryCardGateway?.id,
-    primaryCardGateway?.pre_selected_installment,
-    primaryCardGateway?.installment_limit,
-  ]);
-
   return (
     <>
       <PageHeader
@@ -516,99 +445,6 @@ export default function GatewaysPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Default payment method and card installment defaults */}
-          <div className="mb-5 grid gap-4 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">
-                Pagamento pré-selecionado
-              </Label>
-              <Select
-                value={paymentSettings.default_payment_method}
-                onValueChange={(v) =>
-                  updatePayment("default_payment_method", v as "credit_card" | "pix" | "boleto")
-                }
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="credit_card">Cartão de crédito</SelectItem>
-                  <SelectItem value="pix">Pix</SelectItem>
-                  <SelectItem value="boleto">Boleto</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="pre-selected-installment" className="text-xs font-medium text-muted-foreground">
-                Parcela pré-selecionada
-              </Label>
-              <div className="relative">
-                <Input
-                  id="pre-selected-installment"
-                  type="number"
-                  min={1}
-                  max={cardInstallmentSettings.installment_limit}
-                  step={1}
-                  value={cardInstallmentSettings.pre_selected_installment}
-                  disabled={!primaryCardGateway}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (!Number.isFinite(value)) return;
-                    setCardInstallmentSettings((prev) => ({
-                      ...prev,
-                      pre_selected_installment: clampInstallment(
-                        value,
-                        prev.installment_limit
-                      ),
-                    }));
-                  }}
-                  className="h-9 pr-8 text-sm"
-                />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                  x
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="installment-limit" className="text-xs font-medium text-muted-foreground">
-                Limite de parcelas
-              </Label>
-              <div className="relative">
-                <Input
-                  id="installment-limit"
-                  type="number"
-                  min={1}
-                  max={12}
-                  step={1}
-                  value={cardInstallmentSettings.installment_limit}
-                  disabled={!primaryCardGateway}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (!Number.isFinite(value)) return;
-                    const installmentLimit = clampInstallment(value);
-                    setCardInstallmentSettings((prev) => ({
-                      installment_limit: installmentLimit,
-                      pre_selected_installment: Math.min(
-                        prev.pre_selected_installment,
-                        installmentLimit
-                      ),
-                    }));
-                  }}
-                  className="h-9 pr-8 text-sm"
-                />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                  x
-                </span>
-              </div>
-            </div>
-          </div>
-          <p className="-mt-2 mb-5 text-[11px] text-muted-foreground">
-            Define a parcela que será selecionada no checkout e o máximo disponível, de 1x a 12x.
-            {!primaryCardGateway && " Conecte uma gateway ativa para configurar o parcelamento."}
-          </p>
-
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {/* ── PIX ── */}
             {(() => {
@@ -1094,70 +930,6 @@ export default function GatewaysPage() {
                 </div>
               )}
 
-              {/* Pre-selected installment */}
-              <div className="space-y-2">
-                <Label>Parcela pré-selecionada</Label>
-                <Select
-                  value={String(form.pre_selected_installment)}
-                  onValueChange={(v) =>
-                    setForm((f) => ({
-                      ...f,
-                      pre_selected_installment: parseInt(v),
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: form.installment_limit }, (_, i) => i + 1).map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n}x
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Parcela que aparecerá selecionada por padrão no checkout.
-                </p>
-              </div>
-
-              {/* Installment limit */}
-              <div className="space-y-2">
-                <Label>Limite de parcelas</Label>
-                <Select
-                  value={String(form.installment_limit)}
-                  onValueChange={(v) =>
-                    setForm((f) => ({
-                      ...f,
-                      installment_limit: parseInt(v),
-                      pre_selected_installment: Math.min(
-                        f.pre_selected_installment,
-                        parseInt(v)
-                      ),
-                      interest_free_installments: Math.min(
-                        f.interest_free_installments,
-                        parseInt(v)
-                      ),
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n}x
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Número máximo de parcelas disponíveis no checkout.
-                </p>
-              </div>
-
               {/* Interest-free installments */}
               <div className="space-y-2">
                 <Label>Parcelas sem juros</Label>
@@ -1174,7 +946,7 @@ export default function GatewaysPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.from({ length: form.installment_limit }, (_, i) => i + 1).map((n) => (
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
                       <SelectItem key={n} value={String(n)}>
                         Até {n}x
                       </SelectItem>
