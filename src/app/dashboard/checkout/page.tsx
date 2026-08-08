@@ -178,7 +178,6 @@ const GOOGLE_FONTS = [
   "Ubuntu",
 ];
 
-const FONT_SIZES = ["14px", "15px", "16px", "17px", "18px", "19px", "20px"];
 const STEP_FONT_SIZES = ["1rem", "1.1rem", "1.25rem", "1.4rem", "1.5rem"];
 const BANNER_HEIGHTS = [
   { value: "sm", label: "Pequeno" },
@@ -999,6 +998,23 @@ export default function CheckoutCustomizationPage() {
 
           {/* Conteúdo das etapas */}
           <AccordionSection title="Configurações">
+            <FieldRow label="Família de fonte">
+              <Select
+                value={settings.font_family ?? "Inter"}
+                onValueChange={(v) => update("font_family", v)}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {GOOGLE_FONTS.map((f) => (
+                    <SelectItem key={f} value={f}>
+                      {f}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FieldRow>
             <ToggleRow
               label="Ativar seletor de quantidade"
               description="Permite ao cliente adicionar mais unidades do mesmo produto no resumo do pedido"
@@ -1509,43 +1525,6 @@ export default function CheckoutCustomizationPage() {
             )}
           </AccordionSection>
 
-          {/* Tipografia */}
-          <AccordionSection title="Tipografia">
-            <FieldRow label="Família de fonte">
-              <Select
-                value={settings.font_family ?? "Inter"}
-                onValueChange={(v) => update("font_family", v)}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {GOOGLE_FONTS.map((f) => (
-                    <SelectItem key={f} value={f}>
-                      {f}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FieldRow>
-            <FieldRow label="Tamanho base">
-              <Select
-                value={settings.font_size_base ?? "16px"}
-                onValueChange={(v) => update("font_size_base", v)}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {FONT_SIZES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FieldRow>
-          </AccordionSection>
         </div>
 
         {/* Preview */}
