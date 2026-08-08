@@ -547,7 +547,6 @@ export default function AppsPage() {
       only_paid_sales: true,
       only_selected_products: false,
       selected_product_ids: [] as number[],
-      require_consent: false,
     },
     accessToken: "",
     testEventCode: "",
@@ -567,7 +566,6 @@ export default function AppsPage() {
       only_paid_sales: true,
       only_selected_products: false,
       selected_product_ids: [] as number[],
-      require_consent: false,
     },
     accessToken: "",
     testEventCode: "",
@@ -588,7 +586,6 @@ export default function AppsPage() {
       only_paid_sales: true,
       only_selected_products: false,
       selected_product_ids: [] as number[],
-      require_consent: false,
     },
     accessToken: "",
     testEventCode: "",
@@ -607,7 +604,6 @@ export default function AppsPage() {
       only_paid_sales: true,
       only_selected_products: false,
       selected_product_ids: [] as number[],
-      require_consent: false,
       page_view_event_name: "page_view",
       view_content_event_name: "PRODUCT_VIEW",
       add_to_cart_event_name: "ADD_TO_CART",
@@ -1219,7 +1215,6 @@ export default function AppsPage() {
         only_paid_sales: metaPixel.values.only_paid_sales,
         only_selected_products: metaPixel.values.only_selected_products,
         selected_product_ids: metaPixel.values.selected_product_ids,
-        require_consent: metaPixel.values.require_consent,
       };
       if (!keepCurrentPixel) payload.pixel_id = pixelId;
       if (token) payload.access_token = token;
@@ -1300,7 +1295,6 @@ export default function AppsPage() {
         only_paid_sales: tiktokPixel.values.only_paid_sales,
         only_selected_products: tiktokPixel.values.only_selected_products,
         selected_product_ids: tiktokPixel.values.selected_product_ids,
-        require_consent: tiktokPixel.values.require_consent,
       };
       if (!keepCurrentPixel) payload.pixel_code = pixelCode;
       if (token) payload.access_token = token;
@@ -1381,7 +1375,6 @@ export default function AppsPage() {
         only_paid_sales: kwaiPixel.values.only_paid_sales,
         only_selected_products: kwaiPixel.values.only_selected_products,
         selected_product_ids: kwaiPixel.values.selected_product_ids,
-        require_consent: kwaiPixel.values.require_consent,
       };
       if (!keepCurrentPixel) payload.pixel_code = pixelCode;
       if (token) payload.access_token = token;
@@ -1458,7 +1451,6 @@ export default function AppsPage() {
         only_paid_sales: taboolaPixel.values.only_paid_sales,
         only_selected_products: taboolaPixel.values.only_selected_products,
         selected_product_ids: taboolaPixel.values.selected_product_ids,
-        require_consent: taboolaPixel.values.require_consent,
         page_view_event_name: taboolaPixel.values.page_view_event_name,
         view_content_event_name: taboolaPixel.values.view_content_event_name,
         add_to_cart_event_name: taboolaPixel.values.add_to_cart_event_name,
@@ -1765,7 +1757,6 @@ export default function AppsPage() {
                       ["browser_enabled", "Ativar Meta Pixel no navegador", "Dispara eventos no checkout para o navegador."],
                       ["capi_enabled", "Ativar API de Conversões", "Envia os eventos pelo servidor com dados enriquecidos."],
                       ["only_paid_sales", "Enviar Purchase somente após pagamento aprovado", "Evita contabilizar Pix/boleto ainda pendentes."],
-                      ["require_consent", "Exigir consentimento de marketing", "Respeita a preferência de consentimento antes de enviar eventos."],
                     ] as const).map(([key, label, helper]) => (
                       <div key={key} className="flex items-center justify-between rounded-lg border p-3">
                         <div className="pr-3"><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{helper}</p></div>
@@ -1830,7 +1821,6 @@ export default function AppsPage() {
                       ["browser_enabled", "Ativar TikTok Pixel no navegador", "Dispara eventos no checkout para o navegador."],
                       ["events_api_enabled", "Ativar TikTok Events API", "Envia os eventos pelo servidor com IP, user-agent e identificadores enriquecidos."],
                       ["only_paid_sales", "Enviar Purchase somente após pagamento aprovado", "Evita contabilizar Pix/boleto ainda pendentes."],
-                      ["require_consent", "Exigir consentimento de marketing", "Respeita a preferência de consentimento antes de enviar eventos."],
                     ] as const).map(([key, label, helper]) => (
                       <div key={key} className="flex items-center justify-between rounded-lg border p-3">
                         <div className="pr-3"><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{helper}</p></div>
@@ -1878,7 +1868,6 @@ export default function AppsPage() {
                       ["browser_enabled", "Ativar Kwai Pixel no navegador", "Carrega o Pixel e envia eventos do checkout."],
                       ...(kwaiPixel.eventsApiAvailable ? [["events_api_enabled", "Ativar eventos server-side", "Envia eventos pelo servidor quando o endpoint do Kwai estiver habilitado."]] : []),
                       ["only_paid_sales", "Enviar Purchase somente após pagamento aprovado", "Evita contabilizar Pix/boleto ainda pendentes."],
-                      ["require_consent", "Exigir consentimento de marketing", "Respeita a preferência de consentimento antes de enviar eventos."],
                     ] as const).map(([key, label, helper]) => (
                       <div key={key} className="flex items-center justify-between rounded-lg border p-3">
                         <div className="pr-3"><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{helper}</p></div>
@@ -1917,7 +1906,6 @@ export default function AppsPage() {
                       ["browser_enabled", "Ativar Taboola Pixel no navegador", "Carrega o Pixel e envia PageView e eventos do checkout."],
                       ["s2s_enabled", "Ativar postback server-side", "Envia conversões ao Taboola quando o clique tblci estiver disponível."],
                       ["only_paid_sales", "Enviar Purchase somente após pagamento aprovado", "Evita contabilizar pedidos pendentes."],
-                      ["require_consent", "Exigir consentimento de marketing", "Respeita a preferência de consentimento antes de enviar eventos."],
                     ] as const).map(([key, label, helper]) => (
                       <div key={key} className="flex items-center justify-between rounded-lg border p-3">
                         <div className="pr-3"><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{helper}</p></div>
