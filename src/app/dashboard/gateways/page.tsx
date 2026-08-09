@@ -48,10 +48,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const PROVIDERS: { value: GatewayProvider; label: string }[] = [
   { value: "unipay", label: "Unipay (FastSoft)" },
-  { value: "mercadopago", label: "Mercado Pago" },
-  { value: "stripe", label: "Stripe" },
-  { value: "pagseguro", label: "PagSeguro" },
-  { value: "asaas", label: "Asaas" },
 ];
 
 /* ── Provider metadata for premium cards ── */
