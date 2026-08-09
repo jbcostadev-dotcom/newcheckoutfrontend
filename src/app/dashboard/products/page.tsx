@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/contexts/StoreContext";
 import { api } from "@/lib/api";
@@ -45,6 +45,41 @@ interface CheckoutUrlStore {
   subdomain?: string | null;
 }
 
+type ProductSummary = Product & {
+  description_excerpt?: string | null;
+};
+
+type ApiGroupedItem =
+  | { kind: "plain"; group_key: string; product: ProductSummary }
+  | {
+      kind: "shopify";
+      group_key: string;
+      shopify_product_id: string;
+      parent_title: string;
+      image_url: string | null;
+      variants: ProductSummary[];
+    };
+
+interface PaginatedProductsResponse {
+  data: ApiGroupedItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+}
+
+type GroupedItem =
+  | { kind: "plain"; product: ProductSummary }
+  | {
+      kind: "shopify";
+      shopifyProductId: string;
+      parentTitle: string;
+      imageUrl: string | null;
+      variants: ProductSummary[];
+    };
+
 function buildCheckoutUrl(store: CheckoutUrlStore, productIds: (string | number)[]): string {
   const customDomain = store.custom_domain;
   const checkoutAppDomain =
@@ -63,129 +98,99 @@ function buildCheckoutUrl(store: CheckoutUrlStore, productIds: (string | number)
 export default function ProductsPage() {
   const { selectedStore } = useStore();
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [groups, setGroups] = useState<GroupedItem[]>([]);
+  const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [reloadKey, setReloadKey] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-
-  const fetchProducts = async () => {
-    if (!selectedStore) return;
-    setLoading(true);
-    try {
-      const data = await api.get<Product[]>(
-        `/stores/${selectedStore.id}/products`
-      );
-      setProducts(data);
-    } catch {
-      toast.error("Erro ao carregar produtos.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const detailsRequestRef = useRef(0);
+  const loadedStoreIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedStore]);
+    const timeout = window.setTimeout(() => {
+      setPage(1);
+      setDebouncedSearch(search.trim());
+    }, 300);
 
-  useEffect(() => {
-    setPage(1);
+    return () => window.clearTimeout(timeout);
   }, [search]);
 
-  // Agrupa variantes do mesmo produto Shopify. Produtos criados manualmente
-  // (sem shopify_product_id) ficam como item próprio.
-  type GroupedItem =
-    | { kind: "plain"; product: Product }
-    | {
-        kind: "shopify";
-        shopifyProductId: string;
-        parentTitle: string;
-        imageUrl: string | null;
-        variants: Product[];
-      };
-
-  const groups: GroupedItem[] = useMemo(() => {
-    const map = new Map<string, GroupedItem>();
-    const order: GroupedItem[] = [];
-
-    for (const p of products) {
-      if (p.shopify_product_id) {
-        const key = `s:${p.shopify_product_id}`;
-        let g = map.get(key) as
-          | Extract<GroupedItem, { kind: "shopify" }>
-          | undefined;
-        if (!g) {
-          g = {
-            kind: "shopify",
-            shopifyProductId: p.shopify_product_id,
-            parentTitle: p.parent_title || p.name,
-            imageUrl: p.image_url ?? null,
-            variants: [],
-          };
-          map.set(key, g);
-          order.push(g);
-        }
-        g.variants.push(p);
-      } else {
-        order.push({ kind: "plain", product: p });
-      }
-    }
-    return order;
-  }, [products]);
-
-  const groupMatchesSearch = (g: GroupedItem, term: string): boolean => {
-    if (!term.trim()) return true;
-    const t = term.toLowerCase();
-
-    if (g.kind === "plain") {
-      const p = g.product;
-      if (p.name.toLowerCase().includes(t)) return true;
-      if (p.parent_title?.toLowerCase().includes(t)) return true;
-      return (
-        p.attributes?.some(
-          (a) =>
-            a.name.toLowerCase().includes(t) ||
-            a.value.toLowerCase().includes(t)
-        ) ?? false
-      );
-    }
-
-    if (g.parentTitle.toLowerCase().includes(t)) return true;
-    return g.variants.some((v) => {
-      if (v.name.toLowerCase().includes(t)) return true;
-      if (v.parent_title?.toLowerCase().includes(t)) return true;
-      return (
-        v.attributes?.some(
-          (a) =>
-            a.name.toLowerCase().includes(t) ||
-            a.value.toLowerCase().includes(t)
-        ) ?? false
-      );
-    });
-  };
-
-  const filteredGroups = useMemo(() => {
-    return groups.filter((g) => groupMatchesSearch(g, search));
-  }, [groups, search]);
-
-  const lastPage = useMemo(
-    () => Math.max(1, Math.ceil(filteredGroups.length / PAGE_SIZE)),
-    [filteredGroups]
-  );
-
+  // A API pagina por produto-pai e mantem as variantes Shopify na mesma pagina.
   useEffect(() => {
-    setPage((p) => Math.min(p, lastPage));
-  }, [lastPage]);
+    if (!selectedStore) return;
 
-  const paginatedGroups = useMemo(() => {
-    const safePage = Math.min(page, lastPage);
-    return filteredGroups.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  }, [filteredGroups, page, lastPage]);
+    const controller = new AbortController();
+    const storeId = String(selectedStore.id);
+    const storeChanged = loadedStoreIdRef.current !== storeId;
+    const requestedPage = storeChanged ? 1 : page;
+
+    const loadProducts = async () => {
+      setLoading(true);
+      const params = new URLSearchParams({
+        view: "grouped",
+        page: String(requestedPage),
+        per_page: String(PAGE_SIZE),
+      });
+      if (debouncedSearch) params.set("search", debouncedSearch);
+
+      try {
+        const response = await api.get<PaginatedProductsResponse>(
+          `/stores/${selectedStore.id}/products?${params.toString()}`,
+          { signal: controller.signal }
+        );
+
+        if (requestedPage > response.meta.last_page) {
+          setPage(Math.max(1, response.meta.last_page));
+          return;
+        }
+
+        if (storeChanged) {
+          loadedStoreIdRef.current = storeId;
+          setPage(1);
+          setSelectedIds([]);
+          setExpandedGroups(new Set());
+        }
+
+        setGroups(
+          response.data.map((group) =>
+            group.kind === "plain"
+              ? { kind: "plain", product: group.product }
+              : {
+                  kind: "shopify",
+                  shopifyProductId: group.shopify_product_id,
+                  parentTitle: group.parent_title,
+                  imageUrl: group.image_url,
+                  variants: group.variants,
+                }
+          )
+        );
+        setLastPage(Math.max(1, response.meta.last_page));
+        setTotal(response.meta.total);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        toast.error("Erro ao carregar produtos.");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+
+    loadProducts();
+    return () => controller.abort();
+  }, [selectedStore, page, debouncedSearch, reloadKey]);
+
+  const paginatedGroups = useMemo(
+    () => (selectedStore ? groups : []),
+    [selectedStore, groups]
+  );
 
   const activeInPage = useMemo(() => {
     const ids: number[] = [];
@@ -273,7 +278,7 @@ export default function ProductsPage() {
       toast.success("Sincronização de produtos Shopify iniciada!");
       // Recarrega lista após 2s para dar tempo do job processar (queue sync).
       setTimeout(() => {
-        fetchProducts();
+        setReloadKey((key) => key + 1);
       }, 1500);
     } catch {
       toast.error("Erro ao iniciar sincronização.");
@@ -283,20 +288,49 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (productId: number) => {
-    if (!selectedStore || !confirm("Remover este produto?")) return; // eslint-disable-line no-alert
+    if (!selectedStore || !confirm("Remover este produto?")) return;
     try {
       await api.delete(`/stores/${selectedStore.id}/products/${productId}`);
       toast.success("Produto removido!");
       setSelectedIds((prev) => prev.filter((id) => id !== productId));
-      fetchProducts();
+      setReloadKey((key) => key + 1);
     } catch {
       toast.error("Erro ao remover produto.");
     }
   };
 
-  const openDetails = (product: Product) => {
+  const openDetails = async (product: ProductSummary) => {
+    if (!selectedStore) return;
+
+    const requestId = ++detailsRequestRef.current;
     setSelectedProduct(product);
     setDetailsOpen(true);
+    setDetailsLoading(true);
+
+    try {
+      const details = await api.get<Product>(
+        `/stores/${selectedStore.id}/products/${product.id}`
+      );
+      if (requestId === detailsRequestRef.current) {
+        setSelectedProduct(details);
+      }
+    } catch {
+      if (requestId === detailsRequestRef.current) {
+        toast.error("Não foi possível carregar os detalhes completos.");
+      }
+    } finally {
+      if (requestId === detailsRequestRef.current) {
+        setDetailsLoading(false);
+      }
+    }
+  };
+
+  const handleDetailsOpenChange = (open: boolean) => {
+    if (!open) {
+      detailsRequestRef.current += 1;
+      setDetailsLoading(false);
+    }
+    setDetailsOpen(open);
   };
 
   const getAttributeNames = (attributes?: Product["attributes"]) => {
@@ -447,7 +481,7 @@ export default function ProductsPage() {
                         <div>
                           <p className="font-medium">{product.name}</p>
                           <p className="text-xs text-muted-foreground max-w-[280px] truncate">
-                            {product.description || "Sem descrição"}
+                            {product.description_excerpt || "Sem descrição"}
                           </p>
                         </div>
                       </div>
@@ -706,7 +740,7 @@ export default function ProductsPage() {
               })}
             </TableBody>
           </Table>
-        ) : products.length === 0 ? (
+        ) : paginatedGroups.length === 0 && !debouncedSearch ? (
           <EmptyState
             icon={Package}
             title="Nenhum produto cadastrado"
@@ -729,7 +763,8 @@ export default function ProductsPage() {
       <ProductDetailsDialog
         product={selectedProduct}
         open={detailsOpen}
-        onOpenChange={setDetailsOpen}
+        loading={detailsLoading}
+        onOpenChange={handleDetailsOpenChange}
       />
 
       {/* Paginação */}
@@ -744,7 +779,7 @@ export default function ProductsPage() {
             <ChevronLeft className="h-4 w-4" /> Anterior
           </Button>
           <span className="text-sm text-muted-foreground">
-            {page} de {lastPage}
+            {page} de {lastPage} · {total} produtos
           </span>
           <Button
             variant="outline"

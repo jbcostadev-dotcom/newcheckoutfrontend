@@ -9,13 +9,14 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Package, Ruler, Weight, Tag, Box, Hash } from "lucide-react";
+import { Package, Ruler, Weight, Tag, Box, Hash, Loader2 } from "lucide-react";
 import type { Product } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 
 interface ProductDetailsDialogProps {
   product: Product | null;
   open: boolean;
+  loading?: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -75,6 +76,7 @@ function formatDimension(
 export function ProductDetailsDialog({
   product,
   open,
+  loading = false,
   onOpenChange,
 }: ProductDetailsDialogProps) {
   if (!product) return null;
@@ -107,6 +109,13 @@ export function ProductDetailsDialog({
             {displayName || "Detalhes do produto"}
           </DialogDescription>
         </DialogHeader>
+
+        {loading && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Carregando detalhes completos...
+          </div>
+        )}
 
         <div className="mt-4 grid gap-6">
           {/* Identificação */}
