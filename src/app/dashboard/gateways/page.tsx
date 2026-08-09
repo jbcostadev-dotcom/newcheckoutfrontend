@@ -7,7 +7,6 @@ import type { Gateway, GatewayProvider, CheckoutSettings } from "@/types";
 import { GATEWAY_LABELS } from "@/types";
 import {
   CreditCard,
-  Plus,
   Pencil,
   Trash2,
   Zap,
@@ -298,9 +297,13 @@ export default function GatewaysPage() {
     return activeGateways.filter((g) => !usedIds.includes(g.id));
   };
 
-  const openCreate = () => {
+  const openCreate = (provider: GatewayProvider) => {
     setEditingId(null);
-    setForm(EMPTY_FORM);
+    setForm({
+      ...EMPTY_FORM,
+      provider,
+      name: GATEWAY_LABELS[provider] ?? provider,
+    });
     setIsOpen(true);
   };
 
@@ -414,16 +417,15 @@ export default function GatewaysPage() {
     });
   };
 
+  const availableProviders = PROVIDERS.filter(
+    ({ value }) => !gateways.some((gateway) => gateway.provider === value)
+  );
+
   return (
     <>
       <PageHeader
         title="Gateways de Pagamento"
         description="Configure os provedores de pagamento e métodos aceitos no checkout."
-        actions={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" /> Adicionar Gateway
-          </Button>
-        }
       />
 
       {/* ═══ Payment Methods Control Section ═══ */}
@@ -758,7 +760,7 @@ export default function GatewaysPage() {
                       className="flex-1 h-9 text-xs gap-1.5 transition-colors hover:bg-primary hover:text-primary-foreground hover:border-primary"
                       onClick={() => openEdit(gw)}
                     >
-                      Conectar <ExternalLink className="h-3 w-3" />
+                      Configurar <ExternalLink className="h-3 w-3" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -786,27 +788,92 @@ export default function GatewaysPage() {
             <EmptyState
               icon={CreditCard}
               title="Nenhum gateway configurado"
-              description="Adicione um provedor de pagamento para começar a receber."
-              action={
-                <Button onClick={openCreate}>
-                  <Plus className="h-4 w-4" /> Adicionar Gateway
-                </Button>
-              }
+              description="Escolha uma gateway disponível abaixo para começar a receber."
               className="sm:col-span-2 lg:col-span-3 xl:col-span-4"
             />
           )}
         </div>
       </div>
 
+      {availableProviders.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold">Gateways disponíveis</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Escolha uma gateway para cadastrar as credenciais da sua loja.
+              </p>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {availableProviders.length} disponível{availableProviders.length !== 1 ? "is" : ""}
+            </span>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {availableProviders.map((provider) => {
+              const meta = PROVIDER_META[provider.value];
+
+              return (
+                <div
+                  key={provider.value}
+                  className="group flex flex-col rounded-xl border border-border/50 bg-card overflow-hidden transition-all duration-300 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/5"
+                >
+                  <div className="flex-1 p-5">
+                    <div className="flex items-start justify-between mb-4">
+                      <div
+                        className="flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold text-white shadow-lg transition-transform duration-300 group-hover:scale-105"
+                        style={{ backgroundColor: meta.color }}
+                      >
+                        {meta.icon}
+                      </div>
+                      {meta.isNew && (
+                        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-bold bg-primary/15 text-primary border-0">
+                          NOVO
+                        </Badge>
+                      )}
+                    </div>
+                    <h3 className="text-sm font-bold leading-tight mb-1.5">{provider.label}</h3>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed mb-4 line-clamp-2">
+                      {meta.description}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {meta.methods.map((method) => (
+                        <span
+                          key={method}
+                          className="inline-flex items-center gap-1 rounded-md border border-border/50 bg-secondary/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                        >
+                          {METHOD_ICON[method]}
+                          {method}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="border-t border-border/40 p-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-9 text-xs gap-1.5 transition-colors hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                      onClick={() => openCreate(provider.value)}
+                    >
+                      Cadastrar gateway <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Dialog Criar/Editar Gateway */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingId ? "Editar Gateway" : "Adicionar Gateway"}
+              {editingId ? "Editar Gateway" : `Configurar ${GATEWAY_LABELS[form.provider] ?? form.provider}`}
             </DialogTitle>
             <DialogDescription>
-              Configure as credenciais do provedor de pagamento.
+              Configure as credenciais do provedor de pagamento selecionado.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5">
@@ -829,23 +896,7 @@ export default function GatewaysPage() {
 
             <div className="space-y-2">
               <Label>Provedor</Label>
-              <Select
-                value={form.provider}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, provider: v as GatewayProvider }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROVIDERS.map((p) => (
-                    <SelectItem key={p.value} value={p.value}>
-                      {p.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input value={GATEWAY_LABELS[form.provider] ?? form.provider} disabled />
             </div>
 
             <div className="space-y-2">
