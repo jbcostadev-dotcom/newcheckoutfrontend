@@ -42,19 +42,8 @@ const EMPTY_FORM: OrderBumpFormData = {
   show_boleto: true,
   offer_title: "Você também pode gostar",
   offer_message: "Adicione este item à sua compra com um desconto especial!",
-  bg_color: "#FEFCE8",
-  border_color: "#E2E8F0",
-  button_color: "#13BF8C",
-  button_text_color: "#FFFFFF",
   button_label: "Quero essa oferta",
   is_active: true,
-};
-
-const DEFAULT_COLORS = {
-  bg_color: "#FEFCE8",
-  border_color: "#E2E8F0",
-  button_color: "#13BF8C",
-  button_text_color: "#FFFFFF",
 };
 
 export function OrderBumpFormDialog({
@@ -87,10 +76,6 @@ export function OrderBumpFormDialog({
           show_boleto: orderBump.show_boleto,
           offer_title: orderBump.offer_title,
           offer_message: orderBump.offer_message ?? "",
-          bg_color: orderBump.bg_color,
-          border_color: orderBump.border_color,
-          button_color: orderBump.button_color,
-          button_text_color: orderBump.button_text_color,
           button_label: orderBump.button_label,
           is_active: orderBump.is_active,
         });
@@ -134,15 +119,6 @@ export function OrderBumpFormDialog({
   const handleOfferProductSelection = (ids: number[]) => {
     setForm((f) => ({ ...f, product_id: ids[0] ?? 0 }));
   };
-
-  const previewPrice = useMemo(() => {
-    const base = Number(selectedProduct?.price) || 0;
-    const value = Number(form.discount_value) || 0;
-    if (form.discount_type === "percent") {
-      return Math.max(0, base - (base * value) / 100);
-    }
-    return Math.max(0, base - value);
-  }, [selectedProduct, form.discount_value, form.discount_type]);
 
   const handleSubmit = async () => {
     if (!form.name.trim()) {
@@ -514,102 +490,10 @@ export function OrderBumpFormDialog({
               />
             </div>
 
-            {/* Cores */}
-            <section className="space-y-3">
-              <div className="text-sm font-semibold">Personalize seu Order Bump</div>
-              <div className="space-y-2">
-                <ColorField
-                  label="Cor do fundo"
-                  value={form.bg_color}
-                  onChange={(v) => setForm((f) => ({ ...f, bg_color: v }))}
-                />
-                <ColorField
-                  label="Cor da borda"
-                  value={form.border_color}
-                  onChange={(v) => setForm((f) => ({ ...f, border_color: v }))}
-                />
-                <ColorField
-                  label="Cor do botão"
-                  value={form.button_color}
-                  onChange={(v) => setForm((f) => ({ ...f, button_color: v }))}
-                />
-                <ColorField
-                  label="Cor do texto do botão"
-                  value={form.button_text_color}
-                  onChange={(v) => setForm((f) => ({ ...f, button_text_color: v }))}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  setForm((f) => ({ ...f, ...DEFAULT_COLORS }))
-                }
-                className="text-xs text-muted-foreground underline hover:text-foreground"
-              >
-                Restaurar cores padrão
-              </button>
-            </section>
-
-            {/* Preview ao vivo */}
-            <section className="space-y-2">
-              <div className="text-sm font-semibold">Pré-visualização</div>
-              <div
-                className="rounded-lg border p-3"
-                style={{
-                  background: form.bg_color,
-                  borderColor: form.border_color,
-                }}
-              >
-                {selectedProduct ? (
-                  <>
-                    <div className="flex items-start gap-3">
-                      {selectedProduct.image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={selectedProduct.image_url}
-                          alt=""
-                          className="h-14 w-14 rounded-md object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-14 w-14 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                          <Sparkles className="h-5 w-5" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-foreground truncate">
-                          {form.offer_title || "Título da oferta"}
-                        </p>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {form.offer_message || "Mensagem da oferta…"}
-                        </p>
-                        <div className="mt-1 flex items-center gap-2">
-                          <span className="text-xs line-through text-muted-foreground">
-                            {formatCurrency(Number(selectedProduct.price))}
-                          </span>
-                          <span className="text-sm font-bold text-foreground">
-                            {formatCurrency(previewPrice)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="mt-3 w-full rounded-md py-2 text-sm font-semibold transition-opacity"
-                      style={{
-                        background: form.button_color,
-                        color: form.button_text_color,
-                      }}
-                    >
-                      {form.button_label || "Quero essa oferta"}
-                    </button>
-                  </>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Selecione um produto para visualizar o preview.
-                  </p>
-                )}
-              </div>
-            </section>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              O design é padronizado para todos os Order Bumps. Ajuste as cores em
+              <span className="font-medium text-foreground"> Checkout &gt; Order Bump</span>.
+            </p>
           </div>
         </div>
 
@@ -676,35 +560,6 @@ function PayMethodToggle({
       {label}
       {checked && <Check className="h-3.5 w-3.5" />}
     </button>
-  );
-}
-
-function ColorField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
-      <div className="flex items-center gap-2">
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-8 w-8 cursor-pointer rounded border bg-transparent p-0"
-        />
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-8 w-24 font-mono text-xs"
-        />
-      </div>
-    </div>
   );
 }
 

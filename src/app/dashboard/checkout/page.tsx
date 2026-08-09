@@ -56,6 +56,10 @@ const DEFAULTS: CheckoutSettings = {
   order_bump_display_mode: "stacked",
   order_bump_scarcity_timer_enabled: false,
   order_bump_scarcity_timer_minutes: 10,
+  order_bump_bg_color: "#FEFCE8",
+  order_bump_border_color: "#E2E8F0",
+  order_bump_button_color: "#13BF8C",
+  order_bump_button_text_color: "#FFFFFF",
   dark_mode: true,
   button_text: "Finalizar Compra",
   banner_message: "Digite aqui a mensagem",
@@ -458,6 +462,10 @@ export default function CheckoutCustomizationPage() {
           order_bump_display_mode: settings.order_bump_display_mode,
           order_bump_scarcity_timer_enabled: settings.order_bump_scarcity_timer_enabled,
           order_bump_scarcity_timer_minutes: settings.order_bump_scarcity_timer_minutes,
+          order_bump_bg_color: settings.order_bump_bg_color,
+          order_bump_border_color: settings.order_bump_border_color,
+          order_bump_button_color: settings.order_bump_button_color,
+          order_bump_button_text_color: settings.order_bump_button_text_color,
           dark_mode: settings.dark_mode,
           button_text: settings.button_text,
           banner_message: settings.banner_message,
@@ -545,6 +553,10 @@ export default function CheckoutCustomizationPage() {
       order_bump_display_mode: settings.order_bump_display_mode,
       order_bump_scarcity_timer_enabled: settings.order_bump_scarcity_timer_enabled,
       order_bump_scarcity_timer_minutes: settings.order_bump_scarcity_timer_minutes,
+      order_bump_bg_color: settings.order_bump_bg_color,
+      order_bump_border_color: settings.order_bump_border_color,
+      order_bump_button_color: settings.order_bump_button_color,
+      order_bump_button_text_color: settings.order_bump_button_text_color,
       dark_mode: settings.dark_mode,
       button_text: settings.button_text,
       banner_message: settings.banner_message,
@@ -1231,6 +1243,31 @@ export default function CheckoutCustomizationPage() {
 
           {/* Cronometro de escassez dos order bumps */}
           <AccordionSection title="Order Bump">
+            <p className="pb-3 text-[11px] text-muted-foreground">
+              Estas cores são aplicadas a todos os Order Bumps da loja.
+            </p>
+            <div className="grid grid-cols-2 gap-3 pb-3">
+              <ColorField
+                label="Cor do fundo"
+                value={settings.order_bump_bg_color ?? "#FEFCE8"}
+                onChange={(v) => update("order_bump_bg_color", v)}
+              />
+              <ColorField
+                label="Cor da borda"
+                value={settings.order_bump_border_color ?? "#E2E8F0"}
+                onChange={(v) => update("order_bump_border_color", v)}
+              />
+              <ColorField
+                label="Cor do botão"
+                value={settings.order_bump_button_color ?? "#13BF8C"}
+                onChange={(v) => update("order_bump_button_color", v)}
+              />
+              <ColorField
+                label="Cor do texto do botão"
+                value={settings.order_bump_button_text_color ?? "#FFFFFF"}
+                onChange={(v) => update("order_bump_button_text_color", v)}
+              />
+            </div>
             <FieldRow label="Exibição dos Order Bumps">
               <Select
                 value={settings.order_bump_display_mode ?? "stacked"}
