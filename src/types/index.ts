@@ -343,13 +343,29 @@ export interface Domain {
   dns_verified_at: string | null;
   ssl_status: string;
   verification_token: string | null;
+  cloudflare_custom_hostname_id: string | null;
+  cloudflare_hostname_status: string;
+  cloudflare_error: string | null;
+  cloudflare_synced_at: string | null;
+  cloudflare_cname_target?: string;
   created_at?: string;
 }
 
 export const DOMAIN_STATUS_LABEL: Record<string, string> = {
   pending: "Aguardando DNS",
+  pending_validation: "Validando domínio",
+  pending_issuance: "Emitindo certificado",
+  pending_deployment: "Publicando certificado",
+  initializing: "Iniciando validação",
   dns_verified: "DNS Verificado",
-  active: "SSL Ativo",
+  active: "Ativo na Cloudflare",
+  blocked: "Bloqueado",
+  moved: "DNS alterado",
+  validation_timed_out: "Validação expirou",
+  issuance_timed_out: "Emissão expirou",
+  deployment_timed_out: "Publicação expirou",
+  expired: "Certificado expirado",
+  inactive: "Inativo",
   failed: "Falhou",
 };
 

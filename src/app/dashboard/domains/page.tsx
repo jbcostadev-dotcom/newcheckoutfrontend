@@ -27,8 +27,12 @@ import { Label } from "@/components/ui/label";
 
 type DnsVerificationResult = {
   verified: boolean;
+  dns_configured: boolean;
   found_cname: string | null;
   expected_cname: string;
+  hostname_status: string;
+  ssl_status: string;
+  error: string | null;
 } | null;
 
 export default function DomainsPage() {
@@ -43,11 +47,15 @@ export default function DomainsPage() {
     host: string;
     target: string;
     expected_cname: string;
+    hostname: string;
   } | null>(null);
   const [pendingDomain, setPendingDomain] = useState<Domain | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [dnsResult, setDnsResult] = useState<DnsVerificationResult>(null);
-  const [activating, setActivating] = useState(false);
+
+  const cnameTarget =
+    process.env.NEXT_PUBLIC_CLOUDFLARE_SAAS_CNAME_TARGET ||
+    "customers.bersenker.shop";
 
   const fetchDomains = async () => {
     if (!selectedStore) return;
@@ -75,7 +83,7 @@ export default function DomainsPage() {
     }
     setAdding(true);
     try {
-      const response = await api.post<{ domain: Domain; instructions: { type: string; host: string; target: string; expected_cname: string } }>(
+      const response = await api.post<{ domain: Domain; instructions: { type: string; host: string; target: string; expected_cname: string; hostname: string } }>(
         `/stores/${selectedStore.id}/domains`,
         { domain: newDomain.trim() }
       );
@@ -103,33 +111,19 @@ export default function DomainsPage() {
       );
       setDnsResult(result);
       if (result?.verified) {
-        toast.success("DNS verificado com sucesso!");
-        fetchDomains();
+        toast.success("Domínio e certificado ativados na Cloudflare!");
+        setPendingDomain(null);
+        setInstructions(null);
+        await fetchDomains();
+      } else if (result?.dns_configured) {
+        toast.info("CNAME encontrado. A Cloudflare ainda está concluindo a validação.");
       } else {
-        toast.error("DNS não verificado. Verifique as instruções.");
+        toast.error("CNAME ainda não encontrado. Verifique as instruções.");
       }
     } catch {
       toast.error("Erro ao verificar DNS.");
     } finally {
       setVerifying(false);
-    }
-  };
-
-  const handleActivate = async () => {
-    if (!selectedStore || !pendingDomain) return;
-    setActivating(true);
-    try {
-      await api.post(`/stores/${selectedStore.id}/domains/${pendingDomain.id}/activate`);
-      toast.success("Domínio ativado com SSL!");
-      setPendingDomain(null);
-      setInstructions(null);
-      setDnsResult(null);
-      fetchDomains();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao ativar domínio.";
-      toast.error(message);
-    } finally {
-      setActivating(false);
     }
   };
 
@@ -147,6 +141,19 @@ export default function DomainsPage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copiado!");
+  };
+
+  const openDomainSetup = (domain: Domain) => {
+    const target = domain.cloudflare_cname_target || cnameTarget;
+    setPendingDomain(domain);
+    setDnsResult(null);
+    setInstructions({
+      type: "CNAME",
+      host: "checkout",
+      target,
+      expected_cname: target,
+      hostname: domain.domain,
+    });
   };
 
   const getBadgeVariant = (status: string) => {
@@ -244,14 +251,22 @@ export default function DomainsPage() {
                     <div className="flex-1">
                       <p className="font-medium">{domain.domain}</p>
                       <div className="mt-1 flex items-center gap-2">
-                        <Badge variant={getBadgeVariant(domain.ssl_status) as "success" | "default" | "destructive" | "secondary"}>
-                          {DOMAIN_STATUS_LABEL[domain.ssl_status] || domain.ssl_status}
+                        <Badge variant={getBadgeVariant(domain.status === "failed" ? "failed" : domain.ssl_status) as "success" | "default" | "destructive" | "secondary"}>
+                          {DOMAIN_STATUS_LABEL[domain.status === "failed" ? "failed" : domain.ssl_status] || domain.ssl_status}
                         </Badge>
                         {domain.is_primary && (
                           <Badge variant="outline">Primário</Badge>
                         )}
                       </div>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mr-2"
+                      onClick={() => openDomainSetup(domain)}
+                    >
+                      {domain.ssl_active ? "Consultar" : "Configurar"}
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -284,18 +299,27 @@ export default function DomainsPage() {
           <DialogHeader>
             <DialogTitle>Adicionar Domínio Personalizado</DialogTitle>
             <DialogDescription>
-              Digite o domínio que você deseja conectar ao seu checkout.
+              Digite seu domínio principal. O endereço do checkout será criado automaticamente.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="domain">Domínio</Label>
-              <Input
-                id="domain"
-                placeholder="exemplo.com.br"
-                value={newDomain}
-                onChange={(e) => setNewDomain(e.target.value)}
-              />
+              <Label htmlFor="domain">Domínio principal</Label>
+              <div className="flex rounded-md border bg-background focus-within:ring-2 focus-within:ring-ring">
+                <span className="flex items-center border-r bg-muted px-3 text-sm text-muted-foreground">
+                  checkout.
+                </span>
+                <Input
+                  id="domain"
+                  className="border-0 focus-visible:ring-0"
+                  placeholder="seudominio.com"
+                  value={newDomain}
+                  onChange={(e) => setNewDomain(e.target.value)}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Se você informar www.seudominio.com, usaremos checkout.seudominio.com.
+              </p>
             </div>
           </div>
           <DialogFooter>
@@ -316,7 +340,7 @@ export default function DomainsPage() {
             <DialogHeader>
               <DialogTitle>Configurar DNS</DialogTitle>
               <DialogDescription>
-                Siga as instruções abaixo para conectar seu domínio.
+                Configure o CNAME para ativar {instructions.hostname}.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-6">
@@ -362,7 +386,7 @@ export default function DomainsPage() {
               </div>
 
               <div className="space-y-3">
-                <h4 className="font-medium">2. Verificar DNS</h4>
+                <h4 className="font-medium">2. Verificar conexão</h4>
                 <Button
                   onClick={handleVerifyDns}
                   disabled={verifying}
@@ -374,7 +398,7 @@ export default function DomainsPage() {
                       Verificando...
                     </>
                   ) : (
-                    "Verificar DNS"
+                    "Verificar na Cloudflare"
                   )}
                 </Button>
                 {dnsResult && (
@@ -382,20 +406,32 @@ export default function DomainsPage() {
                     {dnsResult.verified ? (
                       <div className="flex items-center gap-2 text-green-600">
                         <CheckCircle2 className="h-5 w-5" />
-                        <span className="font-medium">DNS verificado!</span>
+                        <span className="font-medium">Domínio ativo!</span>
+                      </div>
+                    ) : dnsResult.dns_configured ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-amber-600">
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          <span className="font-medium">A Cloudflare ainda está validando</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <p>Hostname: <code className="font-mono">{dnsResult.hostname_status}</code></p>
+                          <p>Certificado: <code className="font-mono">{dnsResult.ssl_status}</code></p>
+                        </div>
+                        {dnsResult.error && <p className="text-sm text-destructive">{dnsResult.error}</p>}
                       </div>
                     ) : (
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-destructive">
                           <AlertCircle className="h-5 w-5" />
-                          <span className="font-medium">DNS não verificado</span>
+                          <span className="font-medium">CNAME não encontrado</span>
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">
                           <p>Esperado: <code className="font-mono">{dnsResult.expected_cname}</code></p>
                           <p>Encontrado: <code className="font-mono">{dnsResult.found_cname || "Nenhum registro CNAME"}</code></p>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          A propagação DNS pode levar até 48 horas. Aguarde e tente novamente.
+                          A propagação pode levar alguns minutos. Aguarde e tente novamente.
                         </p>
                       </div>
                     )}
@@ -403,28 +439,9 @@ export default function DomainsPage() {
                 )}
               </div>
 
-              {dnsResult?.verified && (
-                <div className="space-y-3">
-                  <h4 className="font-medium">3. Ativar SSL</h4>
-                  <Button
-                    onClick={handleActivate}
-                    disabled={activating}
-                    className="w-full"
-                  >
-                    {activating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Ativando...
-                      </>
-                    ) : (
-                      "Ativar Domínio com SSL"
-                    )}
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    O certificado SSL será gerado automaticamente via Let's Encrypt.
-                  </p>
-                </div>
-              )}
+              <p className="text-xs text-muted-foreground">
+                A Cloudflare emitirá e renovará o certificado SSL automaticamente. Nenhuma ativação manual é necessária.
+              </p>
             </div>
           </DialogContent>
         </Dialog>
