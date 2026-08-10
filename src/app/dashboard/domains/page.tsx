@@ -36,7 +36,7 @@ type DnsVerificationResult = {
 } | null;
 
 export default function DomainsPage() {
-  const { selectedStore } = useStore();
+  const { selectedStore, refreshSelectedStore } = useStore();
   const [domains, setDomains] = useState<Domain[]>([]);
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -92,7 +92,7 @@ export default function DomainsPage() {
       setAddDialogOpen(false);
       setNewDomain("");
       toast.success("Domínio adicionado!");
-      fetchDomains();
+      await Promise.all([fetchDomains(), refreshSelectedStore()]);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao adicionar domínio.";
       toast.error(message);
@@ -114,7 +114,7 @@ export default function DomainsPage() {
         toast.success("Domínio e certificado ativados na Cloudflare!");
         setPendingDomain(null);
         setInstructions(null);
-        await fetchDomains();
+        await Promise.all([fetchDomains(), refreshSelectedStore()]);
       } else if (result?.dns_configured) {
         toast.info("CNAME encontrado. A Cloudflare ainda está concluindo a validação.");
       } else {
@@ -132,7 +132,7 @@ export default function DomainsPage() {
     try {
       await api.delete(`/stores/${selectedStore.id}/domains/${domainId}`);
       toast.success("Domínio removido!");
-      fetchDomains();
+      await Promise.all([fetchDomains(), refreshSelectedStore()]);
     } catch {
       toast.error("Erro ao remover domínio.");
     }
