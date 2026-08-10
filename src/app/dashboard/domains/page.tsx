@@ -251,8 +251,8 @@ export default function DomainsPage() {
                     <div className="flex-1">
                       <p className="font-medium">{domain.domain}</p>
                       <div className="mt-1 flex items-center gap-2">
-                        <Badge variant={getBadgeVariant(domain.status === "failed" ? "failed" : domain.ssl_status) as "success" | "default" | "destructive" | "secondary"}>
-                          {DOMAIN_STATUS_LABEL[domain.status === "failed" ? "failed" : domain.ssl_status] || domain.ssl_status}
+                        <Badge variant={getBadgeVariant(domain.status) as "success" | "default" | "destructive" | "secondary"}>
+                          {DOMAIN_STATUS_LABEL[domain.status] || domain.status}
                         </Badge>
                         {domain.is_primary && (
                           <Badge variant="outline">Primário</Badge>
