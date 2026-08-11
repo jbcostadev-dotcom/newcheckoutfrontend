@@ -60,6 +60,11 @@ interface NavItem {
   children?: NavItem[];
 }
 
+interface SidebarProps {
+  className?: string;
+  onNavigate?: () => void;
+}
+
 const NAV: { section: string; items: NavItem[] }[] = [
   {
     section: "Loja",
@@ -218,7 +223,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ className, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { stores, selectedStore, setSelectedStoreById, addStore } = useStore();
 
@@ -260,7 +265,7 @@ export function Sidebar() {
 
   return (
     <>
-      <aside className="flex w-64 shrink-0 flex-col border-r bg-background">
+      <aside className={cn("flex w-64 shrink-0 flex-col border-r bg-background", className)}>
         {/* Brand */}
         <div className="flex h-16 items-center gap-2 border-b px-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -351,6 +356,7 @@ export function Sidebar() {
                     ) : (
                       <Link
                         href={item.href}
+                        onClick={onNavigate}
                         className={cn(
                           "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                           active
@@ -371,6 +377,7 @@ export function Sidebar() {
                             <Link
                               key={child.href}
                               href={child.href}
+                              onClick={onNavigate}
                               className={cn(
                                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                                 childActive

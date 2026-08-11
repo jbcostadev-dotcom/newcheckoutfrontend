@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, User, ChevronDown, Trophy, Shield } from "lucide-react";
+import { LogOut, Settings, User, ChevronDown, Trophy, Shield, Menu } from "lucide-react";
 
 import { cn, initials } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,9 +20,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 interface DashboardHeaderProps {
   className?: string;
+  onMenuClick?: () => void;
 }
 
-export function DashboardHeader({ className }: DashboardHeaderProps) {
+export function DashboardHeader({ className, onMenuClick }: DashboardHeaderProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -33,11 +34,21 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 left-64 z-30 flex h-16 items-center justify-between border-b bg-background px-4 lg:px-6",
+        "fixed top-0 right-0 left-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 md:left-64 lg:px-6",
         className
       )}
     >
       <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          aria-label="Abrir menu"
+          onClick={onMenuClick}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
         <Link
           href="/dashboard"
           className="text-sm font-semibold text-muted-foreground hover:text-foreground"
@@ -47,7 +58,7 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" asChild>
+        <Button variant="outline" size="sm" asChild className="hidden sm:inline-flex">
           <Link href="/dashboard/conquistas">
             <Trophy className="mr-2 h-4 w-4" /> Conquistas
           </Link>

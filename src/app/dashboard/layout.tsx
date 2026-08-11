@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { StoreProvider } from "@/contexts/StoreContext";
@@ -15,6 +16,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const isCheckoutBuilder = pathname === "/dashboard/checkout";
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
     <AuthProvider>
@@ -26,11 +28,25 @@ export default function DashboardLayout({
             </div>
           ) : (
             <div className="flex h-screen overflow-hidden bg-background">
-              <Sidebar />
+              <Sidebar className="hidden md:flex" />
+              {mobileSidebarOpen && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Fechar menu"
+                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] md:hidden"
+                    onClick={() => setMobileSidebarOpen(false)}
+                  />
+                  <Sidebar
+                    className="fixed inset-y-0 left-0 z-50 flex md:hidden"
+                    onNavigate={() => setMobileSidebarOpen(false)}
+                  />
+                </>
+              )}
               <div className="flex flex-1 flex-col overflow-hidden pt-16">
-                <DashboardHeader />
+                <DashboardHeader onMenuClick={() => setMobileSidebarOpen(true)} />
                 <main className="flex-1 overflow-y-auto">
-                  <div className="mx-auto max-w-7xl p-6 lg:p-8">{children}</div>
+                  <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">{children}</div>
                 </main>
               </div>
             </div>

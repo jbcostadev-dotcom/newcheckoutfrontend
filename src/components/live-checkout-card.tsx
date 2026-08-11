@@ -33,7 +33,11 @@ export function LiveCheckoutCard() {
   const [loading, setLoading] = useState(true);
 
   const fetchSessions = useCallback(async () => {
-    if (!selectedStore) return;
+    if (!selectedStore) {
+      setSessions([]);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await api.get<LiveCheckoutResponse>(
         `/stores/${selectedStore.id}/live-checkout`
@@ -53,17 +57,24 @@ export function LiveCheckoutCard() {
   }, [fetchSessions]);
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Radio className="h-4 w-4 text-success" />
-          Checkout ao vivo
-          {!loading && sessions.length > 0 && (
-            <Badge variant="secondary" className="ml-2">
-              {sessions.length}
-            </Badge>
-          )}
-        </CardTitle>
+    <Card className="overflow-hidden border-border/80 bg-card shadow-[var(--panel-shadow)]">
+      <CardHeader className="flex flex-row items-center justify-between border-b border-border/70 px-5 py-4 sm:px-6">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#008A39]/10 text-[#008A39] dark:bg-[#008A39]/20 dark:text-[#00E55F]">
+              <Radio className="h-4 w-4" aria-hidden="true" />
+            </span>
+            Checkout ao vivo
+            {!loading && sessions.length > 0 && (
+              <Badge variant="secondary" className="ml-1">
+                {sessions.length}
+              </Badge>
+            )}
+          </CardTitle>
+          <p className="ml-10 mt-0.5 text-xs text-muted-foreground">
+            Clientes que estão preenchendo o checkout agora
+          </p>
+        </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
@@ -72,7 +83,7 @@ export function LiveCheckoutCard() {
           Ao vivo
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-5 py-4 sm:px-6">
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -80,9 +91,15 @@ export function LiveCheckoutCard() {
             ))}
           </div>
         ) : sessions.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            Nenhum cliente ativo no checkout no momento.
-          </p>
+          <div className="flex flex-col items-center py-7 text-center">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+              <Radio className="h-4 w-4" aria-hidden="true" />
+            </div>
+            <p className="text-sm font-medium">Nenhum checkout ativo</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Novos clientes aparecerão aqui em tempo real.
+            </p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

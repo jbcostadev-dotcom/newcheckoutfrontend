@@ -291,11 +291,22 @@ export interface SocialProof {
 }
 
 export interface Metrics {
+  period?: "today" | "week" | "month" | "year";
   revenue_today: number;
+  revenue_total?: number;
   orders_paid: number;
   conversion: number;
   orders_total: number;
+  orders_pending?: number;
+  orders_failed?: number;
+  sales_series?: SalesSeriesPoint[];
   recent_orders?: Order[];
+}
+
+export interface SalesSeriesPoint {
+  label: string;
+  value: number;
+  orders: number;
 }
 
 export interface LiveCheckoutItem {
