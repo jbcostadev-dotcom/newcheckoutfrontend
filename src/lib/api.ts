@@ -49,7 +49,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     ...(headers as Record<string, string>),
   };
 
-  // FormData — let the browser set the multipart boundary
+  // FormData - let the browser set the multipart boundary
   // PHP/Laravel does not parse multipart bodies for PUT/PATCH, so spoof the method via POST.
   let isFormData = body instanceof FormData;
   if (isFormData && method !== "GET" && method !== "POST") {

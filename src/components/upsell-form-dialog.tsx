@@ -230,7 +230,7 @@ export function UpsellFormDialog({
                     <SelectContent>
                       {products.map((p) => (
                         <SelectItem key={p.id} value={String(p.id)}>
-                          {p.name} — {formatCurrency(Number(p.price))}
+                          {p.name} - {formatCurrency(Number(p.price))}
                         </SelectItem>
                       ))}
                     </SelectContent>

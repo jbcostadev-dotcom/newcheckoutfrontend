@@ -57,7 +57,7 @@ export default function DashboardOverview() {
       );
       setMetrics(data);
     } catch {
-      /* ignore — cards show zeros */
+      /* ignore - cards show zeros */
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export default function DashboardOverview() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
           Visão Geral
-          {selectedStore ? ` — ${selectedStore.name}` : ""}
+          {selectedStore ? ` - ${selectedStore.name}` : ""}
         </h1>
         <p className="text-sm text-muted-foreground">
           Acompanhe o desempenho da sua loja.
@@ -160,7 +160,7 @@ export default function DashboardOverview() {
                           : `#${order.id}`}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {order.customer_name} — {formatDate(order.created_at)}
+                        {order.customer_name} - {formatDate(order.created_at)}
                       </p>
                     </div>
                   </div>
@@ -212,7 +212,7 @@ function MetricCard({
         {loading ? (
           <Skeleton className="h-8 w-24" />
         ) : (
-          <p className={`text-2xl font-bold ${accent}`}>{value}</p>
+          <p className={`font-mono text-2xl font-bold ${accent}`}>{value}</p>
         )}
       </CardContent>
     </Card>

@@ -27,7 +27,7 @@ import {
 } from "@/components/shipping-form-dialog";
 
 function formatDeliveryDays(min: number, max: number): string {
-  if (!min && !max) return "—";
+  if (!min && !max) return "-";
   if (min === max) return `${min} dias`;
   if (!min) return `até ${max} dias`;
   if (!max) return `${min} dias`;

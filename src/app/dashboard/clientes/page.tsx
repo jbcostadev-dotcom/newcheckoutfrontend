@@ -239,7 +239,7 @@ export default function CustomersPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs">
-                    {customer.created_at ? formatDate(customer.created_at) : "—"}
+                    {customer.created_at ? formatDate(customer.created_at) : "-"}
                   </TableCell>
                 </TableRow>
               ))}
@@ -336,7 +336,7 @@ export default function CustomersPage() {
                 </div>
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Telefone</p>
-                  <p className="text-foreground">{selectedCustomer.phone ?? "—"}</p>
+                  <p className="text-foreground">{selectedCustomer.phone ?? "-"}</p>
                 </div>
                 {selectedCustomer.document && (
                   <div>
@@ -364,7 +364,7 @@ export default function CustomersPage() {
                       {selectedCustomer.complement ? ` - ${selectedCustomer.complement}` : ""}
                       <br />
                       {selectedCustomer.district}
-                      {selectedCustomer.city ? ` — ${selectedCustomer.city}` : ""}
+                      {selectedCustomer.city ? ` - ${selectedCustomer.city}` : ""}
                       {selectedCustomer.uf ? `/${selectedCustomer.uf}` : ""}
                       {selectedCustomer.zip ? ` · CEP ${selectedCustomer.zip}` : ""}
                     </p>

@@ -615,7 +615,7 @@ export default function AppsPage() {
   });
   const [taboolaPixelSaving, setTaboolaPixelSaving] = useState(false);
 
-  // Produtos da loja — carregados sob demanda para o seletor do Google Ads.
+  // Produtos da loja - carregados sob demanda para o seletor do Google Ads.
   const [storeProducts, setStoreProducts] = useState<
     { id: number; name: string; parent_title?: string | null; image_url?: string | null; is_active: boolean }[]
   >([]);
@@ -1721,7 +1721,7 @@ export default function AppsPage() {
                       <Input
                         id="meta_pixel_id"
                         value={metaPixel.values.pixel_id}
-                        placeholder={metaPixel.hasPixel ? "Pixel já salvo — informe um novo para substituir" : "123456789012345"}
+                        placeholder={metaPixel.hasPixel ? "Pixel já salvo - informe um novo para substituir" : "123456789012345"}
                         onChange={(e) => setMetaPixel((prev) => ({ ...prev, values: { ...prev.values, pixel_id: e.target.value.replace(/\D/g, "") } }))}
                         inputMode="numeric"
                         autoComplete="off"
@@ -1734,7 +1734,7 @@ export default function AppsPage() {
                         id="meta_access_token"
                         type="password"
                         value={metaPixel.accessToken}
-                        placeholder={metaPixel.hasAccessToken ? "Token já salvo — cole um novo para substituir" : "Cole o token gerado no Gerenciador de Eventos"}
+                        placeholder={metaPixel.hasAccessToken ? "Token já salvo - cole um novo para substituir" : "Cole o token gerado no Gerenciador de Eventos"}
                         onChange={(e) => setMetaPixel((prev) => ({ ...prev, accessToken: e.target.value }))}
                         autoComplete="new-password"
                       />
@@ -1747,7 +1747,7 @@ export default function AppsPage() {
                         id="meta_test_event_code"
                         type="password"
                         value={metaPixel.testEventCode}
-                        placeholder={metaPixel.hasTestEventCode ? "Código já salvo — cole um novo para substituir" : "TEST12345"}
+                        placeholder={metaPixel.hasTestEventCode ? "Código já salvo - cole um novo para substituir" : "TEST12345"}
                         onChange={(e) => setMetaPixel((prev) => ({ ...prev, testEventCode: e.target.value }))}
                         autoComplete="off"
                       />
@@ -1786,7 +1786,7 @@ export default function AppsPage() {
                       <Input
                         id="tiktok_pixel_code"
                         value={tiktokPixel.values.pixel_code}
-                        placeholder={tiktokPixel.hasPixel ? "Pixel já salvo — informe um novo para substituir" : "CÓDIGO_DO_PIXEL"}
+                        placeholder={tiktokPixel.hasPixel ? "Pixel já salvo - informe um novo para substituir" : "CÓDIGO_DO_PIXEL"}
                         onChange={(e) => setTikTokPixel((prev) => ({ ...prev, values: { ...prev.values, pixel_code: e.target.value.trim() } }))}
                         autoComplete="off"
                       />
@@ -1798,7 +1798,7 @@ export default function AppsPage() {
                         id="tiktok_access_token"
                         type="password"
                         value={tiktokPixel.accessToken}
-                        placeholder={tiktokPixel.hasAccessToken ? "Token já salvo — cole um novo para substituir" : "Cole o token gerado no TikTok Events Manager"}
+                        placeholder={tiktokPixel.hasAccessToken ? "Token já salvo - cole um novo para substituir" : "Cole o token gerado no TikTok Events Manager"}
                         onChange={(e) => setTikTokPixel((prev) => ({ ...prev, accessToken: e.target.value }))}
                         autoComplete="new-password"
                       />
@@ -1811,7 +1811,7 @@ export default function AppsPage() {
                         id="tiktok_test_event_code"
                         type="password"
                         value={tiktokPixel.testEventCode}
-                        placeholder={tiktokPixel.hasTestEventCode ? "Código já salvo — cole um novo para substituir" : "TEST12345"}
+                        placeholder={tiktokPixel.hasTestEventCode ? "Código já salvo - cole um novo para substituir" : "TEST12345"}
                         onChange={(e) => setTikTokPixel((prev) => ({ ...prev, testEventCode: e.target.value }))}
                         autoComplete="off"
                       />
@@ -1843,7 +1843,7 @@ export default function AppsPage() {
                     <div className="space-y-1.5">
                       <Label htmlFor="kwai_pixel_code">Pixel ID<span className="ml-0.5 text-destructive">*</span></Label>
                       <Input id="kwai_pixel_code" value={kwaiPixel.values.pixel_code}
-                        placeholder={kwaiPixel.hasPixel ? "Pixel já salvo — informe um novo para substituir" : "ID do Pixel no Kwai Ads Manager"}
+                        placeholder={kwaiPixel.hasPixel ? "Pixel já salvo - informe um novo para substituir" : "ID do Pixel no Kwai Ads Manager"}
                         onChange={(e) => setKwaiPixel((prev) => ({ ...prev, values: { ...prev.values, pixel_code: e.target.value.trim() } }))} autoComplete="off" />
                       {kwaiPixel.hasPixel && <p className="text-xs text-emerald-600">Pixel configurado. Deixe vazio para manter o atual.</p>}
                     </div>
@@ -1851,7 +1851,7 @@ export default function AppsPage() {
                       <div className="space-y-1.5">
                         <Label htmlFor="kwai_access_token">Access Token server-side</Label>
                         <Input id="kwai_access_token" type="password" value={kwaiPixel.accessToken}
-                          placeholder={kwaiPixel.hasAccessToken ? "Token já salvo — cole um novo para substituir" : "Cole o token fornecido pelo Kwai"}
+                          placeholder={kwaiPixel.hasAccessToken ? "Token já salvo - cole um novo para substituir" : "Cole o token fornecido pelo Kwai"}
                           onChange={(e) => setKwaiPixel((prev) => ({ ...prev, accessToken: e.target.value }))} autoComplete="new-password" />
                         {kwaiPixel.hasAccessToken && <p className="text-xs text-emerald-600">Token configurado. Deixe vazio para manter o atual.</p>}
                         <p className="text-xs text-muted-foreground">O token fica criptografado e nunca é enviado ao checkout.</p>
@@ -1859,7 +1859,7 @@ export default function AppsPage() {
                       <div className="space-y-1.5">
                         <Label htmlFor="kwai_test_event_code">Código de teste (opcional)</Label>
                         <Input id="kwai_test_event_code" type="password" value={kwaiPixel.testEventCode}
-                          placeholder={kwaiPixel.hasTestEventCode ? "Código já salvo — cole um novo para substituir" : "Código de teste do Kwai"}
+                          placeholder={kwaiPixel.hasTestEventCode ? "Código já salvo - cole um novo para substituir" : "Código de teste do Kwai"}
                           onChange={(e) => setKwaiPixel((prev) => ({ ...prev, testEventCode: e.target.value }))} autoComplete="off" />
                       </div>
                     </>
@@ -1890,14 +1890,14 @@ export default function AppsPage() {
                     <div className="space-y-1.5">
                       <Label htmlFor="taboola_account_id">Account ID<span className="ml-0.5 text-destructive">*</span></Label>
                       <Input id="taboola_account_id" value={taboolaPixel.values.account_id}
-                        placeholder={taboolaPixel.hasAccountId ? "Account ID já salvo — informe um novo para substituir" : "ID da conta no Taboola Ads"}
+                        placeholder={taboolaPixel.hasAccountId ? "Account ID já salvo - informe um novo para substituir" : "ID da conta no Taboola Ads"}
                         onChange={(e) => setTaboolaPixel((prev) => ({ ...prev, values: { ...prev.values, account_id: e.target.value.trim() } }))} autoComplete="off" />
                       {taboolaPixel.hasAccountId && <p className="text-xs text-emerald-600">Account ID configurado. Deixe vazio para manter o atual.</p>}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="taboola_postback_url">URL do postback S2S (opcional)</Label>
                       <Input id="taboola_postback_url" type="url" value={taboolaPixel.postbackUrl}
-                        placeholder={taboolaPixel.hasPostbackUrl ? "URL personalizada já salva — deixe vazio para manter" : "https://trc.taboola.com/actions-handler/log/3/s2s-action"}
+                        placeholder={taboolaPixel.hasPostbackUrl ? "URL personalizada já salva - deixe vazio para manter" : "https://trc.taboola.com/actions-handler/log/3/s2s-action"}
                         onChange={(e) => setTaboolaPixel((prev) => ({ ...prev, postbackUrl: e.target.value }))} autoComplete="off" />
                       <p className="text-xs text-muted-foreground">Deixe vazio para usar o endpoint oficial global do Taboola. A URL fica protegida no servidor.</p>
                     </div>
@@ -1939,7 +1939,7 @@ export default function AppsPage() {
                       <Input
                         id="ga_pixel_name"
                         type="text"
-                        placeholder="Ex.: Pixel Vendas — BlackFriday"
+                        placeholder="Ex.: Pixel Vendas - BlackFriday"
                         value={googleAds.values.pixel_name}
                         onChange={(e) =>
                           setGoogleAds((prev) => ({
@@ -1958,7 +1958,7 @@ export default function AppsPage() {
                       <Input
                         id="ga_pixel_id"
                         type="text"
-                        placeholder={googleAds.hasPixel ? "Pixel já salvo — informe um novo para substituir" : "AW-XXXXXXXXX"}
+                        placeholder={googleAds.hasPixel ? "Pixel já salvo - informe um novo para substituir" : "AW-XXXXXXXXX"}
                         onChange={(e) =>
                           setGoogleAds((prev) => ({
                             ...prev,
@@ -2172,7 +2172,7 @@ export default function AppsPage() {
 
                           const placeholder =
                             isTokenField && hasSavedToken
-                              ? "Credencial já salva — cole uma nova para substituir"
+                              ? "Credencial já salva - cole uma nova para substituir"
                               : field.placeholder;
 
                           if (isSelect) {

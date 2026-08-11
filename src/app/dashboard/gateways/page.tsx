@@ -191,7 +191,7 @@ export default function GatewaysPage() {
         boleto_gateway_ids: data.boleto_gateway_ids ?? (data.boleto_gateway_id ? [data.boleto_gateway_id] : []),
       });
     } catch {
-      // silent — settings may not exist yet
+      // silent - settings may not exist yet
     }
   }, [selectedStore]);
 
@@ -662,7 +662,7 @@ export default function GatewaysPage() {
         </CardContent>
       </Card>
 
-      {/* ═══ Gateway Cards — Premium Dark Design ═══ */}
+      {/* ═══ Gateway Cards - Premium Dark Design ═══ */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Gateways Cadastradas</h2>

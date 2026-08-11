@@ -80,7 +80,7 @@ function ShopifyTutorialDialog() {
             Como configurar a integração Shopify
           </DialogTitle>
           <DialogDescription>
-            Cadastre seu <strong>próprio app Shopify</strong> e cole as credenciais aqui no painel. Cada loja usa o app do seu dono — você controla seus dados na Shopify.
+            Cadastre seu <strong>próprio app Shopify</strong> e cole as credenciais aqui no painel. Cada loja usa o app do seu dono - você controla seus dados na Shopify.
           </DialogDescription>
         </DialogHeader>
 
@@ -155,9 +155,9 @@ function ShopifyTutorialDialog() {
                 </div>
               </div>
               <ul className="pt-2 space-y-1 text-muted-foreground">
-                <li>• <code className="font-mono">read_products</code> — sincronizar produtos</li>
-                <li>• <code className="font-mono">read_orders</code> — ler pedidos</li>
-                <li>• <code className="font-mono">write_themes</code> — injetar o snippet de checkout no tema</li>
+                <li>• <code className="font-mono">read_products</code> - sincronizar produtos</li>
+                <li>• <code className="font-mono">read_orders</code> - ler pedidos</li>
+                <li>• <code className="font-mono">write_themes</code> - injetar o snippet de checkout no tema</li>
               </ul>
             </div>
           </div>
@@ -172,7 +172,7 @@ function ShopifyTutorialDialog() {
               <p className="text-muted-foreground">Em <strong>Configuration → API credentials</strong>, copie:</p>
               <ul className="space-y-1 text-muted-foreground">
                 <li>• <strong>Client ID</strong> (API key)</li>
-                <li>• <strong>Client Secret</strong> (API secret key) — clique em <em>Reveal</em> para ver.</li>
+                <li>• <strong>Client Secret</strong> (API secret key) - clique em <em>Reveal</em> para ver.</li>
               </ul>
             </div>
           </div>
@@ -214,7 +214,7 @@ function ShopifyTutorialDialog() {
           <div className="rounded-lg border border-[#95bf47]/30 bg-[#95bf47]/5 p-4 text-xs text-muted-foreground">
             <p className="mb-1 font-semibold text-foreground">💡 Importante:</p>
             <ul className="space-y-1">
-              <li>• Cada loja pode usar seu <strong>próprio app Shopify</strong> — as credenciais ficam salvas aqui no painel, sem editar arquivos no servidor.</li>
+              <li>• Cada loja pode usar seu <strong>próprio app Shopify</strong> - as credenciais ficam salvas aqui no painel, sem editar arquivos no servidor.</li>
               <li>• A loja recebe um <strong>access token</strong> próprio após autorizar via OAuth.</li>
               <li>• A URL de redirecionamento deve estar na lista de URLs permitidas do app na Shopify.</li>
             </ul>
@@ -236,7 +236,7 @@ export default function IntegrationsPage() {
   const [credentialsConfigured, setCredentialsConfigured] = useState(false);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
-  // Domínio da loja Shopify (ex: sua-loja.myshopify.com) — salvo junto das credenciais.
+  // Domínio da loja Shopify (ex: sua-loja.myshopify.com) - salvo junto das credenciais.
   const [shopDomain, setShopDomain] = useState("");
   const [savingCreds, setSavingCreds] = useState(false);
   const [showCredsForm, setShowCredsForm] = useState(false);
@@ -606,7 +606,7 @@ export default function IntegrationsPage() {
                     <p className="text-muted-foreground">
                       Código injetado no tema{" "}
                       <span className="font-medium text-foreground">
-                        #{injectedThemeId ?? "—"}
+                        #{injectedThemeId ?? "-"}
                       </span>
                       {injectedAt && (
                         <>

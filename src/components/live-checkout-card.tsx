@@ -134,7 +134,7 @@ export function LiveCheckoutCard() {
                           <span>{session.cep}</span>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </td>
                     <td className="py-3 align-top">
@@ -144,7 +144,7 @@ export function LiveCheckoutCard() {
                           <span>{PAYMENT_LABEL[session.payment_method]}</span>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </td>
                     <td className="py-3 align-top text-right">

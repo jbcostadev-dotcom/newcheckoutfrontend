@@ -347,7 +347,7 @@ export default function ProductsPage() {
   };
 
   const formatStock = (quantity?: number | null) => {
-    if (quantity === null || quantity === undefined) return "—";
+    if (quantity === null || quantity === undefined) return "-";
     return quantity;
   };
 
@@ -498,7 +498,7 @@ export default function ProductsPage() {
                     </TableCell>
                     <TableCell>
                       <span className="text-xs text-muted-foreground">
-                        {getAttributeNames(product.attributes) ?? "—"}
+                        {getAttributeNames(product.attributes) ?? "-"}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -609,7 +609,7 @@ export default function ProductsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        —
+                        -
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -620,7 +620,7 @@ export default function ProductsPage() {
                       </TableCell>
                       <TableCell>
                         <span className="text-xs text-muted-foreground">
-                          {getGroupAttributeNames(g.variants) ?? "—"}
+                          {getGroupAttributeNames(g.variants) ?? "-"}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -629,7 +629,7 @@ export default function ProductsPage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">-</span>
                       </TableCell>
                       <TableCell className="text-right text-xs text-muted-foreground">
                         Grupo
@@ -691,7 +691,7 @@ export default function ProductsPage() {
                             </TableCell>
                             <TableCell>
                               <span className="text-xs text-muted-foreground">
-                                {getAttributeNames(variant.attributes) ?? "—"}
+                                {getAttributeNames(variant.attributes) ?? "-"}
                               </span>
                             </TableCell>
                             <TableCell>

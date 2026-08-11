@@ -329,7 +329,7 @@ export default function CheckoutCustomizationPage() {
       );
       setSocialProofs(data);
     } catch {
-      // silent — non-critical
+      // silent - non-critical
     }
   }, [selectedStore]);
 

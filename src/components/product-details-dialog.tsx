@@ -314,9 +314,9 @@ export function ProductDetailsDialog({
           <Separator />
 
           <div className="text-xs text-muted-foreground">
-            Criado em: {product.created_at ? new Date(product.created_at).toLocaleString("pt-BR") : "—"}
+            Criado em: {product.created_at ? new Date(product.created_at).toLocaleString("pt-BR") : "-"}
             <br />
-            Atualizado em: {product.updated_at ? new Date(product.updated_at).toLocaleString("pt-BR") : "—"}
+            Atualizado em: {product.updated_at ? new Date(product.updated_at).toLocaleString("pt-BR") : "-"}
           </div>
         </div>
       </DialogContent>

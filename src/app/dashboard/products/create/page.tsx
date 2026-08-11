@@ -121,7 +121,7 @@ export default function CreateProductPage() {
                   )}
                 </div>
                 <p className="text-center text-[11px] text-muted-foreground">
-                  PNG ou JPG — 650×650px
+                  PNG ou JPG - 650×650px
                 </p>
               </div>
 

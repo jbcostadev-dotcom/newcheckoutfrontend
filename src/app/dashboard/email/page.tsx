@@ -661,7 +661,7 @@ function TemplatesTab() {
       ...getEmptyForm(),
       event,
       name: EMAIL_EVENT_LABEL[event],
-      subject: `${EMAIL_EVENT_LABEL[event]} — ${selectedStore?.name ?? "Loja"}`,
+      subject: `${EMAIL_EVENT_LABEL[event]} - ${selectedStore?.name ?? "Loja"}`,
       body_html: DEFAULT_HTML,
     });
     setPreviewMode(false);
@@ -813,7 +813,7 @@ function TemplatesTab() {
               {editing ? "Editar template" : "Novo template"}
             </DialogTitle>
             <DialogDescription>
-              {EMAIL_EVENT_LABEL[form.event]} —{" "}
+              {EMAIL_EVENT_LABEL[form.event]} -{" "}
               {EMAIL_EVENT_DESCRIPTION[form.event]}
             </DialogDescription>
           </DialogHeader>
@@ -1187,7 +1187,7 @@ function LogsTab() {
                         {log.template?.name ??
                           EMAIL_EVENT_LABEL[log.event ?? ""] ??
                           log.event ??
-                          "—"}
+                          "-"}
                       </span>
                       <Badge
                         variant={

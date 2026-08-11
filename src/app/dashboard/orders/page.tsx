@@ -233,7 +233,7 @@ export default function OrdersPage() {
                         )}
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-xs text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell className="font-medium">
@@ -372,7 +372,7 @@ export default function OrdersPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground">—</p>
+                    <p className="text-muted-foreground">-</p>
                   )}
                 </div>
                 <div>
@@ -395,13 +395,13 @@ export default function OrdersPage() {
                         <p>
                           Bandeira:{" "}
                           <span className="text-foreground">
-                            {selectedOrder.card_brand ?? "—"}
+                            {selectedOrder.card_brand ?? "-"}
                           </span>
                         </p>
                         <p>
                           Final:{" "}
                           <span className="text-foreground font-mono">
-                            {selectedOrder.card_last4 ?? "—"}
+                            {selectedOrder.card_last4 ?? "-"}
                           </span>
                         </p>
                         <p>

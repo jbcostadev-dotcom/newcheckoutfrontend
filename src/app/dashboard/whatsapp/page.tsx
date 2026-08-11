@@ -699,7 +699,7 @@ function TemplatesTab() {
               {editing ? "Editar template" : "Novo template"}
             </DialogTitle>
             <DialogDescription>
-              {WHATSAPP_EVENT_LABEL[form.event]} — {WHATSAPP_EVENT_DESCRIPTION[form.event]}
+              {WHATSAPP_EVENT_LABEL[form.event]} - {WHATSAPP_EVENT_DESCRIPTION[form.event]}
             </DialogDescription>
           </DialogHeader>
 
@@ -1011,7 +1011,7 @@ function LogsTab() {
                         {log.template?.name ??
                           WHATSAPP_EVENT_LABEL[log.event ?? ""] ??
                           log.event ??
-                          "—"}
+                          "-"}
                       </span>
                       <Badge
                         variant={log.status === "sent" ? "success" : "destructive"}

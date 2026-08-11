@@ -315,7 +315,7 @@ export function Sidebar() {
         <nav className="flex-1 space-y-6 overflow-y-auto p-3">
           {NAV.map((group) => (
             <div key={group.section} className="space-y-1">
-              <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="px-3 pb-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {group.section}
               </p>
               {group.items.map((item) => {

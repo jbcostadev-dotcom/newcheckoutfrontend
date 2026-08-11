@@ -74,7 +74,7 @@ function statusVariant(status: AbandonedCartStatus) {
 }
 
 function paymentMethodLabel(method?: string | null): string {
-  if (!method) return "—";
+  if (!method) return "-";
   switch (method) {
     case "pix":
       return "PIX";
@@ -276,7 +276,7 @@ export default function AbandonedCartsPage() {
                         {ABANDONED_CART_REASON_LABEL[cart.abandoned_reason]}
                       </span>
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-xs text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -431,7 +431,7 @@ export default function AbandonedCartsPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground">—</p>
+                    <p className="text-muted-foreground">-</p>
                   )}
                 </div>
                 <div>
@@ -454,13 +454,13 @@ export default function AbandonedCartsPage() {
                         <p>
                           Bandeira:{" "}
                           <span className="text-foreground">
-                            {selectedCart.card_brand ?? "—"}
+                            {selectedCart.card_brand ?? "-"}
                           </span>
                         </p>
                         <p>
                           Final:{" "}
                           <span className="font-mono text-foreground">
-                            {selectedCart.card_last4 ?? "—"}
+                            {selectedCart.card_last4 ?? "-"}
                           </span>
                         </p>
                       </>
@@ -493,19 +493,19 @@ export default function AbandonedCartsPage() {
                 <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                   <div>
                     <span className="block uppercase">Dispositivo</span>
-                    {selectedCart.device_type ?? "—"}
+                    {selectedCart.device_type ?? "-"}
                   </div>
                   <div>
                     <span className="block uppercase">IP</span>
-                    {selectedCart.ip_address ?? "—"}
+                    {selectedCart.ip_address ?? "-"}
                   </div>
                   <div>
                     <span className="block uppercase">UTM Source</span>
-                    {selectedCart.utm_source ?? "—"}
+                    {selectedCart.utm_source ?? "-"}
                   </div>
                   <div>
                     <span className="block uppercase">UTM Medium</span>
-                    {selectedCart.utm_medium ?? "—"}
+                    {selectedCart.utm_medium ?? "-"}
                   </div>
                 </div>
               </div>
