@@ -33,7 +33,7 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 left-64 z-30 flex h-16 items-center justify-between border-b bg-card px-4 lg:px-6",
+        "fixed top-0 right-0 left-64 z-30 flex h-16 items-center justify-between border-b bg-background px-4 lg:px-6",
         className
       )}
     >

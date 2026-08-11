@@ -6,11 +6,11 @@ colors:
   primary: "#00E55F"
   secondary: "#09090B"
   accent: "#008A39"
-  background: "#09090B"
-  surface: "#27272A"
+  background: "#0E0E11"
+  surface: "#0D0D0F"
   text-primary: "#FFFFFF"
   text-secondary: "#A1A1AA"
-  border: "#27272A"
+  border: "#24242A"
 typography:
   display-lg:
     fontFamily: "Inter"
@@ -56,7 +56,7 @@ Live Telemetry Institutional Grade Analytics Real-time insights across global in
 Use the attached HTML reference as the source of truth. Preserve the visible hierarchy, first-screen composition, section rhythm, density, and interaction tone before adapting copy or content.
 Key visible headings include: Institutional Grade Analytics; 100%; < 24h; 1.25%; Axiom Capital; $14,250,000.
 ## Colors
-Anchor the palette in primary #00E55F, secondary #09090B, accent #008A39, background #09090B, surface #27272A, text-primary #FFFFFF. Keep background, surface, text, and border roles distinct so generated layouts retain the same contrast pattern as the source.
+Anchor the palette in primary #00E55F, secondary #09090B, accent #008A39, background #0E0E11, surface #0D0D0F, text-primary #FFFFFF. Keep background, surface, text, and border roles distinct so generated layouts retain the same contrast pattern as the source.
 ## Typography
 Use Inter for display moments and Inter for body copy unless the HTML clearly demands a compatible fallback. Labels and technical metadata should use JetBrains Mono or an equivalent mono face.
 ## Layout
