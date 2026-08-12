@@ -299,8 +299,28 @@ export interface Metrics {
   orders_total: number;
   orders_pending?: number;
   orders_failed?: number;
+  checkout_funnel?: CheckoutFunnel;
+  payment_methods?: PaymentMethodShare[];
   sales_series?: SalesSeriesPoint[];
   recent_orders?: Order[];
+}
+
+export interface CheckoutFunnelStage {
+  key: "entered" | "personal_data" | "delivery" | "approved";
+  label: string;
+  count: number;
+}
+
+export interface CheckoutFunnel {
+  conversion: number;
+  stages: CheckoutFunnelStage[];
+}
+
+export interface PaymentMethodShare {
+  method: PaymentMethod;
+  label: string;
+  count: number;
+  percentage: number;
 }
 
 export interface SalesSeriesPoint {

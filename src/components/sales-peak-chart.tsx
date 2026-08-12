@@ -1,4 +1,4 @@
-import { BarChart3, TrendingUp } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 
 import { formatCurrency } from "@/lib/utils";
 import type { SalesSeriesPoint } from "@/types";
@@ -33,14 +33,12 @@ function smoothPath(points: Array<{ x: number; y: number }>) {
 interface SalesPeakChartProps {
   data: SalesSeriesPoint[];
   periodLabel: string;
-  conversion: number;
   loading?: boolean;
 }
 
 export function SalesPeakChart({
   data,
   periodLabel,
-  conversion,
   loading = false,
 }: SalesPeakChartProps) {
   const chartWidth = WIDTH - MARGIN.left - MARGIN.right;
@@ -70,7 +68,7 @@ export function SalesPeakChart({
     : MARGIN.left;
 
   return (
-    <Card className="overflow-hidden border-border/80 bg-card shadow-[var(--panel-shadow)]">
+    <Card className="h-full overflow-hidden border-border/80 bg-card shadow-[var(--panel-shadow)]">
       <CardHeader className="flex flex-col gap-5 border-b border-border/70 px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#008A39]/12 text-[#00b94d] dark:bg-[#008A39]/20 dark:text-[#00E55F]">
@@ -83,20 +81,11 @@ export function SalesPeakChart({
             </p>
           </div>
         </div>
-        <div className="flex items-end gap-5 sm:text-right">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">Receita</p>
-            <p className="font-mono text-xl font-bold tracking-tight">
-              {formatCurrency(total)}
-            </p>
-          </div>
-          <div className="rounded-lg bg-[#008A39]/10 px-3 py-2 text-left dark:bg-[#008A39]/18">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#007a33] dark:text-[#72f29f]">
-              <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
-              {conversion.toFixed(1)}%
-            </div>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">conversão</p>
-          </div>
+        <div className="sm:text-right">
+          <p className="text-xs font-medium text-muted-foreground">Receita</p>
+          <p className="font-mono text-xl font-bold tracking-tight">
+            {formatCurrency(total)}
+          </p>
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -106,11 +95,11 @@ export function SalesPeakChart({
           <div className="overflow-x-auto px-2 pb-2 pt-4 sm:px-4">
             <svg
               viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-              className="h-auto min-w-[720px] w-full"
+              className="h-auto min-w-[560px] w-full"
               role="img"
               aria-labelledby="sales-chart-title sales-chart-description"
             >
-              <title id="sales-chart-title">Pico de vendas em {periodLabel}</title>
+              <title id="sales-chart-title">{`Pico de vendas em ${periodLabel}`}</title>
               <desc id="sales-chart-description">
                 Gráfico de área com a receita aprovada em cada intervalo do período selecionado.
               </desc>

@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import LiveCheckoutCard from "@/components/live-checkout-card";
+import { DashboardInsights } from "@/components/dashboard-insights";
 import { SalesPeakChart } from "@/components/sales-peak-chart";
 
 type DashboardPeriod = "today" | "week" | "month" | "year";
@@ -158,12 +159,18 @@ export default function DashboardOverview() {
 
       <LiveCheckoutCard />
 
-      <SalesPeakChart
-        data={metrics?.sales_series ?? []}
-        periodLabel={periodLabel}
-        conversion={metrics?.conversion ?? 0}
-        loading={loading}
-      />
+      <section className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.75fr)]">
+        <SalesPeakChart
+          data={metrics?.sales_series ?? []}
+          periodLabel={periodLabel}
+          loading={loading}
+        />
+        <DashboardInsights
+          funnel={metrics?.checkout_funnel}
+          paymentMethods={metrics?.payment_methods}
+          loading={loading}
+        />
+      </section>
 
       <Card className="border-border/80 bg-card shadow-[var(--panel-shadow)]">
         <CardHeader className="flex flex-row items-center justify-between border-b border-border/70 px-5 py-4 sm:px-6">
