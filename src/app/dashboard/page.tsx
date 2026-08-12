@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  AlertCircle,
   ArrowRight,
+  BadgeCheck,
   CalendarDays,
   Clock,
   DollarSign,
@@ -149,12 +149,12 @@ export default function DashboardOverview() {
           className="bg-gradient-to-br from-[#c56f00] to-[#f3a82d]"
         />
         <MetricCard
-          title="Vendas falhadas"
-          icon={AlertCircle}
-          value={String(metrics?.orders_failed ?? 0)}
-          note={`Falhas registradas em ${periodLabel.toLowerCase()}`}
+          title="Pedidos pagos"
+          icon={BadgeCheck}
+          value={String(metrics?.orders_paid ?? 0)}
+          note={`Pagamentos aprovados em ${periodLabel.toLowerCase()}`}
           loading={loading}
-          className="bg-gradient-to-br from-[#cf303c] to-[#ef5b67]"
+          className="bg-gradient-to-br from-[#1d4ed8] to-[#3b82f6]"
         />
       </section>
 

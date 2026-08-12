@@ -34,7 +34,7 @@ export function DashboardHeader({ className, onMenuClick }: DashboardHeaderProps
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 left-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 md:left-64 lg:px-6",
+        "fixed top-0 right-0 left-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 md:sticky md:left-auto md:right-auto md:shrink-0 lg:px-6",
         className
       )}
     >
