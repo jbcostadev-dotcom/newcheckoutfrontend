@@ -68,7 +68,7 @@ export function SalesPeakChart({
     : MARGIN.left;
 
   return (
-    <Card className="h-full overflow-hidden border-border/80 bg-card shadow-[var(--panel-shadow)]">
+    <Card className="flex h-full flex-col overflow-hidden border-border/80 bg-card shadow-[var(--panel-shadow)]">
       <CardHeader className="flex flex-col gap-5 border-b border-border/70 px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#008A39]/12 text-[#00b94d] dark:bg-[#008A39]/20 dark:text-[#00E55F]">
@@ -88,7 +88,7 @@ export function SalesPeakChart({
           </p>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="mt-auto w-full p-0">
         {loading ? (
           <div className="h-[340px] animate-pulse bg-gradient-to-b from-muted/35 to-transparent" />
         ) : (
