@@ -157,8 +157,6 @@ export default function DashboardOverview() {
         />
       </section>
 
-      <LiveCheckoutCard />
-
       <section className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.75fr)]">
         <SalesPeakChart
           data={metrics?.sales_series ?? []}
@@ -171,6 +169,8 @@ export default function DashboardOverview() {
           loading={loading}
         />
       </section>
+
+      <LiveCheckoutCard />
 
       <Card className="border-border/80 bg-card shadow-[var(--panel-shadow)]">
         <CardHeader className="flex flex-row items-center justify-between border-b border-border/70 px-5 py-4 sm:px-6">
