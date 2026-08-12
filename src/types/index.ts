@@ -301,6 +301,8 @@ export interface Metrics {
   orders_failed?: number;
   checkout_funnel?: CheckoutFunnel;
   payment_methods?: PaymentMethodShare[];
+  sales_by_state?: StateSales[];
+  payment_conversions?: PaymentConversion[];
   sales_series?: SalesSeriesPoint[];
   recent_orders?: Order[];
 }
@@ -321,6 +323,22 @@ export interface PaymentMethodShare {
   label: string;
   count: number;
   percentage: number;
+}
+
+export interface StateSales {
+  state: string;
+  sales: number;
+  revenue: number;
+}
+
+export interface PaymentConversion {
+  method: PaymentMethod;
+  label: string;
+  basis: "generated" | "decided";
+  approved: number;
+  generated: number;
+  refused: number;
+  conversion: number;
 }
 
 export interface SalesSeriesPoint {

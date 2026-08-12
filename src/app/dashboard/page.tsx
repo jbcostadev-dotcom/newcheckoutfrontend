@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import LiveCheckoutCard from "@/components/live-checkout-card";
 import { DashboardInsights } from "@/components/dashboard-insights";
+import { DashboardLocationAndConversion } from "@/components/dashboard-location-and-conversion";
 import { SalesPeakChart } from "@/components/sales-peak-chart";
 
 type DashboardPeriod = "today" | "week" | "month" | "year";
@@ -171,6 +172,12 @@ export default function DashboardOverview() {
       </section>
 
       <LiveCheckoutCard />
+
+      <DashboardLocationAndConversion
+        salesByState={metrics?.sales_by_state}
+        paymentConversions={metrics?.payment_conversions}
+        loading={loading}
+      />
 
       <Card className="border-border/80 bg-card shadow-[var(--panel-shadow)]">
         <CardHeader className="flex flex-row items-center justify-between border-b border-border/70 px-5 py-4 sm:px-6">
