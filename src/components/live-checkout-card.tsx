@@ -9,18 +9,12 @@ import type { LiveCheckoutSession, LiveCheckoutResponse } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Radio, MapPin, User, CreditCard } from "lucide-react";
+import { Radio, User } from "lucide-react";
 
 const STEP_LABEL: Record<LiveCheckoutSession["step"], string> = {
   dados: "Identificação",
   entrega: "Endereço",
   pagamento: "Pagamento",
-};
-
-const PAYMENT_LABEL: Record<string, string> = {
-  pix: "PIX",
-  credit_card: "Cartão",
-  boleto: "Boleto",
 };
 
 function stepNumber(step: LiveCheckoutSession["step"]): number {
@@ -57,7 +51,7 @@ export function LiveCheckoutCard() {
   }, [fetchSessions]);
 
   return (
-    <Card className="overflow-hidden border-border/80 bg-card shadow-[var(--panel-shadow)]">
+    <Card className="min-w-0 overflow-hidden border-border/80 bg-card shadow-[var(--panel-shadow)]">
       <CardHeader className="flex flex-row items-center justify-between border-b border-border/70 px-5 py-4 sm:px-6">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -101,15 +95,13 @@ export function LiveCheckoutCard() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-hidden">
+            <table className="w-full table-fixed text-sm">
               <thead>
                 <tr className="border-b text-muted-foreground">
-                  <th className="pb-2 text-left font-medium">Etapa</th>
-                  <th className="pb-2 text-left font-medium">Cliente</th>
-                  <th className="pb-2 text-left font-medium">Localização</th>
-                  <th className="pb-2 text-left font-medium">Pagamento</th>
-                  <th className="pb-2 text-right font-medium">Total</th>
+                  <th className="w-[34%] pb-2 text-left font-medium">Etapa</th>
+                  <th className="w-[42%] pb-2 text-left font-medium">Cliente</th>
+                  <th className="w-[24%] pb-2 text-right font-medium">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -127,13 +119,13 @@ export function LiveCheckoutCard() {
                     </td>
                     <td className="py-3 align-top">
                       {session.customer_name ? (
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <User className="h-3.5 w-3.5 text-muted-foreground" />
-                            {session.customer_name}
+                        <div className="min-w-0 space-y-0.5 pr-2">
+                          <div className="flex min-w-0 items-center gap-1.5 font-medium">
+                            <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="truncate">{session.customer_name}</span>
                           </div>
                           {session.customer_email && (
-                            <div className="text-xs text-muted-foreground">
+                            <div className="truncate text-xs text-muted-foreground">
                               {session.customer_email}
                             </div>
                           )}
@@ -142,26 +134,6 @@ export function LiveCheckoutCard() {
                         <span className="text-muted-foreground">
                           Anônimo
                         </span>
-                      )}
-                    </td>
-                    <td className="py-3 align-top">
-                      {session.cep ? (
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <MapPin className="h-3.5 w-3.5" />
-                          <span>{session.cep}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="py-3 align-top">
-                      {session.payment_method ? (
-                        <div className="flex items-center gap-1.5">
-                          <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>{PAYMENT_LABEL[session.payment_method]}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
                       )}
                     </td>
                     <td className="py-3 align-top text-right">

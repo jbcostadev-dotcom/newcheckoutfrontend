@@ -171,15 +171,10 @@ export default function DashboardOverview() {
         />
       </section>
 
-      <LiveCheckoutCard />
+      <section className="grid items-stretch gap-4 lg:grid-cols-2">
+        <LiveCheckoutCard />
 
-      <DashboardLocationAndConversion
-        salesByState={metrics?.sales_by_state}
-        paymentConversions={metrics?.payment_conversions}
-        loading={loading}
-      />
-
-      <Card className="border-border/80 bg-card shadow-[var(--panel-shadow)]">
+        <Card className="min-w-0 border-border/80 bg-card shadow-[var(--panel-shadow)]">
         <CardHeader className="flex flex-row items-center justify-between border-b border-border/70 px-5 py-4 sm:px-6">
           <div>
             <CardTitle className="text-base">Pedidos recentes</CardTitle>
@@ -255,7 +250,14 @@ export default function DashboardOverview() {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </section>
+
+      <DashboardLocationAndConversion
+        salesByState={metrics?.sales_by_state}
+        paymentConversions={metrics?.payment_conversions}
+        loading={loading}
+      />
     </div>
   );
 }

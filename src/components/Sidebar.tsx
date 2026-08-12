@@ -27,7 +27,6 @@ import {
   Megaphone,
   BadgePercent,
   ChevronDown,
-  Trophy,
   Monitor,
 } from "lucide-react";
 
@@ -98,12 +97,6 @@ const NAV: { section: string; items: NavItem[] }[] = [
         label: "Clientes",
         icon: Users,
         match: (p) => p.startsWith("/dashboard/clientes"),
-      },
-      {
-        href: "/dashboard/conquistas",
-        label: "Conquistas",
-        icon: Trophy,
-        match: (p) => p.startsWith("/dashboard/conquistas"),
       },
     ],
   },
