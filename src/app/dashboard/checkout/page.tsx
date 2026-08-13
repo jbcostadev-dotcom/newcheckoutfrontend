@@ -61,6 +61,11 @@ const DEFAULTS: CheckoutSettings = {
   order_bump_border_color: "#E2E8F0",
   order_bump_button_color: "#13BF8C",
   order_bump_button_text_color: "#FFFFFF",
+  upsell_bg_color: "#FFFFFF",
+  upsell_border_color: "#E2E8F0",
+  upsell_text_color: "#1A1A1A",
+  upsell_button_color: "#22C55E",
+  upsell_button_text_color: "#FFFFFF",
   dark_mode: true,
   button_text: "Finalizar Compra",
   banner_message: "Digite aqui a mensagem",
@@ -489,6 +494,11 @@ export default function CheckoutCustomizationPage() {
           order_bump_border_color: settings.order_bump_border_color,
           order_bump_button_color: settings.order_bump_button_color,
           order_bump_button_text_color: settings.order_bump_button_text_color,
+          upsell_bg_color: settings.upsell_bg_color,
+          upsell_border_color: settings.upsell_border_color,
+          upsell_text_color: settings.upsell_text_color,
+          upsell_button_color: settings.upsell_button_color,
+          upsell_button_text_color: settings.upsell_button_text_color,
           dark_mode: settings.dark_mode,
           button_text: settings.button_text,
           banner_message: settings.banner_message,
@@ -589,6 +599,11 @@ export default function CheckoutCustomizationPage() {
     selectPreviewView("pagamento");
   };
 
+  const previewUpsell = () => {
+    postSettingsToIframe();
+    selectPreviewView("upsell");
+  };
+
   useEffect(() => {
     if (!previewUrl) return;
     postSettingsToIframe();
@@ -607,6 +622,11 @@ export default function CheckoutCustomizationPage() {
       order_bump_border_color: settings.order_bump_border_color,
       order_bump_button_color: settings.order_bump_button_color,
       order_bump_button_text_color: settings.order_bump_button_text_color,
+      upsell_bg_color: settings.upsell_bg_color,
+      upsell_border_color: settings.upsell_border_color,
+      upsell_text_color: settings.upsell_text_color,
+      upsell_button_color: settings.upsell_button_color,
+      upsell_button_text_color: settings.upsell_button_text_color,
       dark_mode: settings.dark_mode,
       button_text: settings.button_text,
       banner_message: settings.banner_message,
@@ -1397,6 +1417,50 @@ export default function CheckoutCustomizationPage() {
                 </div>
               </FieldRow>
             )}
+          </AccordionSection>
+
+          <AccordionSection title="Upsell">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mb-3 w-full"
+              onClick={previewUpsell}
+            >
+              <Eye className="h-4 w-4" aria-hidden="true" />
+              Visualizar Upsell
+            </Button>
+            <p className="pb-3 text-[11px] text-muted-foreground">
+              Estas cores são aplicadas a todos os Upsells da loja. O conteúdo e
+              o desconto continuam sendo definidos em cada oferta.
+            </p>
+            <div className="grid grid-cols-2 gap-3 pb-3">
+              <ColorField
+                label="Cor do fundo"
+                value={settings.upsell_bg_color ?? "#FFFFFF"}
+                onChange={(value) => update("upsell_bg_color", value)}
+              />
+              <ColorField
+                label="Cor da borda"
+                value={settings.upsell_border_color ?? "#E2E8F0"}
+                onChange={(value) => update("upsell_border_color", value)}
+              />
+              <ColorField
+                label="Cor do texto"
+                value={settings.upsell_text_color ?? "#1A1A1A"}
+                onChange={(value) => update("upsell_text_color", value)}
+              />
+              <ColorField
+                label="Cor do botão"
+                value={settings.upsell_button_color ?? "#22C55E"}
+                onChange={(value) => update("upsell_button_color", value)}
+              />
+              <ColorField
+                label="Cor do texto do botão"
+                value={settings.upsell_button_text_color ?? "#FFFFFF"}
+                onChange={(value) => update("upsell_button_text_color", value)}
+              />
+            </div>
           </AccordionSection>
 
           {/* Provas Sociais */}

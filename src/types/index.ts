@@ -198,6 +198,11 @@ export interface CheckoutSettings {
   order_bump_border_color?: string;
   order_bump_button_color?: string;
   order_bump_button_text_color?: string;
+  upsell_bg_color?: string;
+  upsell_border_color?: string;
+  upsell_text_color?: string;
+  upsell_button_color?: string;
+  upsell_button_text_color?: string;
   dark_mode: boolean;
   button_text?: string | null;
   banner_message?: string | null;
