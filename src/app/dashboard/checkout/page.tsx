@@ -147,6 +147,15 @@ const EMPTY_FORM: SocialProofForm = {
 };
 
 type DeviceMode = "desktop" | "mobile";
+type PreviewView = "dados" | "entrega" | "pagamento" | "upsell" | "confirmed";
+
+const PREVIEW_OPTIONS: Array<{ value: PreviewView; label: string }> = [
+  { value: "dados", label: "Etapa 1" },
+  { value: "entrega", label: "Etapa 2" },
+  { value: "pagamento", label: "Etapa 3" },
+  { value: "upsell", label: "Upsell" },
+  { value: "confirmed", label: "Pedido pago" },
+];
 
 function onlyDigits(value: string): string {
   return value.replace(/\D+/g, "");
@@ -285,7 +294,7 @@ export default function CheckoutCustomizationPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [device, setDevice] = useState<DeviceMode>("desktop");
-  const [iframeKey, setIframeKey] = useState(0);
+  const [previewView, setPreviewView] = useState<PreviewView>("dados");
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
 
@@ -442,9 +451,22 @@ export default function CheckoutCustomizationPage() {
       `checkout.${process.env.NEXT_PUBLIC_CHECKOUT_BASE_DOMAIN || "bersenker.shop"}`;
     const customDomain = selectedStore.custom_domain;
     if (customDomain) {
+      if (previewView === "upsell") {
+        return `https://${customDomain}/${encodeURIComponent(customDomain)}/upsell/preview?preview=1`;
+      }
+      if (previewView === "confirmed") {
+        return `https://${customDomain}/${encodeURIComponent(customDomain)}/confirmed/preview?preview=1`;
+      }
       return `https://${customDomain}/checkout?preview=1`;
     }
-    return `https://${checkoutAppDomain}/store/${selectedStore.id}/checkout?preview=1`;
+    const previewBaseUrl = `https://${checkoutAppDomain}/store/${selectedStore.id}`;
+    if (previewView === "upsell") {
+      return `${previewBaseUrl}/upsell/preview?preview=1`;
+    }
+    if (previewView === "confirmed") {
+      return `${previewBaseUrl}/confirmed/preview?preview=1`;
+    }
+    return `${previewBaseUrl}/checkout?preview=1`;
   })();
 
   const postSettingsToIframe = useCallback(() => {
@@ -540,6 +562,22 @@ export default function CheckoutCustomizationPage() {
     );
   }, [settings, logoPreview, bannerPreview]);
 
+  const postPreviewStepToIframe = useCallback((view: PreviewView) => {
+    if (view === "upsell" || view === "confirmed") return;
+    iframeRef.current?.contentWindow?.postMessage(
+      {
+        type: "checkout:preview-step",
+        step: view,
+      },
+      "*"
+    );
+  }, []);
+
+  const selectPreviewView = (view: PreviewView) => {
+    setPreviewView(view);
+    postPreviewStepToIframe(view);
+  };
+
   const previewOrderBump = () => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) {
@@ -548,19 +586,13 @@ export default function CheckoutCustomizationPage() {
     }
 
     postSettingsToIframe();
-    iframe.contentWindow.postMessage(
-      {
-        type: "checkout:preview-step",
-        step: "pagamento",
-      },
-      "*"
-    );
+    selectPreviewView("pagamento");
   };
 
   useEffect(() => {
     if (!previewUrl) return;
     postSettingsToIframe();
-  }, [settings, previewUrl, iframeKey, postSettingsToIframe]);
+  }, [settings, previewUrl, postSettingsToIframe]);
 
   const buildSettingsPayload = (): Record<string, unknown> => {
     return {
@@ -780,6 +812,22 @@ export default function CheckoutCustomizationPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Select
+            value={previewView}
+            onValueChange={(value) => selectPreviewView(value as PreviewView)}
+          >
+            <SelectTrigger className="h-9 w-[150px] text-xs sm:w-[170px]">
+              <SelectValue aria-label="Tela do preview" />
+            </SelectTrigger>
+            <SelectContent>
+              {PREVIEW_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="h-6 w-px bg-border mx-1" />
           <Button
             size="sm"
             variant={device === "desktop" ? "default" : "ghost"}
@@ -1600,10 +1648,9 @@ export default function CheckoutCustomizationPage() {
             </div>
           ) : (
             <iframe
-              key={iframeKey}
               ref={iframeRef}
               src={previewUrl}
-              title="Preview do checkout"
+              title={`Preview: ${PREVIEW_OPTIONS.find((option) => option.value === previewView)?.label ?? "Checkout"}`}
               className="rounded-lg border bg-white shadow-sm transition-all"
               style={{
                 width: device === "mobile" ? 390 : "100%",
@@ -1612,6 +1659,7 @@ export default function CheckoutCustomizationPage() {
               }}
               onLoad={() => {
                 postSettingsToIframe();
+                postPreviewStepToIframe(previewView);
               }}
             />
           )}
