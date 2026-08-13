@@ -18,6 +18,7 @@ import {
   Upload,
   X,
   User,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -538,6 +539,23 @@ export default function CheckoutCustomizationPage() {
       "*"
     );
   }, [settings, logoPreview, bannerPreview]);
+
+  const previewOrderBump = () => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) {
+      toast.error("O preview do checkout ainda não está disponível.");
+      return;
+    }
+
+    postSettingsToIframe();
+    iframe.contentWindow.postMessage(
+      {
+        type: "checkout:preview-step",
+        step: "pagamento",
+      },
+      "*"
+    );
+  };
 
   useEffect(() => {
     if (!previewUrl) return;
@@ -1243,6 +1261,16 @@ export default function CheckoutCustomizationPage() {
 
           {/* Cronometro de escassez dos order bumps */}
           <AccordionSection title="Order Bump">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mb-3 w-full"
+              onClick={previewOrderBump}
+            >
+              <Eye className="h-4 w-4" aria-hidden="true" />
+              Visualizar Order Bump
+            </Button>
             <p className="pb-3 text-[11px] text-muted-foreground">
               Estas cores são aplicadas a todos os Order Bumps da loja.
             </p>
