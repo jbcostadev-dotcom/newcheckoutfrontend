@@ -275,7 +275,7 @@ export default function ProductsPage() {
     setSyncing(true);
     try {
       await api.post(`/stores/${selectedStore.id}/shopify/sync`);
-      toast.success("Sincronização de produtos Shopify iniciada!");
+      toast.success("Sincronização do catálogo Shopify iniciada!");
       // Recarrega lista após 2s para dar tempo do job processar (queue sync).
       setTimeout(() => {
         setReloadKey((key) => key + 1);
@@ -375,7 +375,7 @@ export default function ProductsPage() {
                 variant="outline"
                 onClick={handleSyncShopify}
                 disabled={syncing}
-                title="Importar/atualizar produtos do Shopify"
+                title="Importar/atualizar produtos e coleções do Shopify"
               >
                 <RefreshCw
                   className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`}

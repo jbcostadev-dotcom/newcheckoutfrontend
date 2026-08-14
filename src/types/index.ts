@@ -107,6 +107,21 @@ export interface Product {
   updated_at?: string;
 }
 
+export interface ShopifyCollection {
+  id: number;
+  store_id: number;
+  shopify_collection_id: string;
+  shopify_graphql_id: string;
+  title: string;
+  handle?: string | null;
+  description?: string | null;
+  image_url?: string | null;
+  products_count: number;
+  sort_order?: string | null;
+  shopify_updated_at?: string | null;
+  last_synced_at?: string | null;
+}
+
 export type OrderStatus =
   | "pending"
   | "processing"

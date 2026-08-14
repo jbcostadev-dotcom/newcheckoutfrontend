@@ -155,7 +155,7 @@ function ShopifyTutorialDialog() {
                 </div>
               </div>
               <ul className="pt-2 space-y-1 text-muted-foreground">
-                <li>• <code className="font-mono">read_products</code> - sincronizar produtos</li>
+                <li>• <code className="font-mono">read_products</code> - sincronizar produtos e coleções</li>
                 <li>• <code className="font-mono">read_orders</code> - ler pedidos</li>
                 <li>• <code className="font-mono">write_themes</code> - injetar o snippet de checkout no tema</li>
               </ul>
@@ -205,7 +205,7 @@ function ShopifyTutorialDialog() {
               Conecte a Shopify
             </h3>
             <p className="text-muted-foreground pl-8">
-              Clique em <strong>Conectar Shopify</strong>. Você será redirecionado direto para a Shopify, autorize o acesso e voltará automaticamente para o painel com a integração ativa. Os produtos começam a sincronizar em seguida.
+              Clique em <strong>Conectar Shopify</strong>. Você será redirecionado direto para a Shopify, autorize o acesso e voltará automaticamente para o painel com a integração ativa. Produtos e coleções começam a sincronizar em seguida.
             </p>
           </div>
 
@@ -282,7 +282,7 @@ export default function IntegrationsPage() {
     if (!status) return;
     const message = params.get("message");
     if (status === "connected") {
-      toast.success("Shopify conectado! Sincronizando produtos...");
+      toast.success("Shopify conectado! Sincronizando produtos e coleções...");
     } else if (status === "error") {
       toast.error(message ? decodeURIComponent(message) : "Falha ao conectar a Shopify.");
     }
@@ -354,7 +354,7 @@ export default function IntegrationsPage() {
     setSyncing(true);
     try {
       await api.post(`/stores/${selectedStore.id}/shopify/sync`);
-      toast.success("Sincronização de produtos iniciada!");
+      toast.success("Sincronização de produtos e coleções iniciada!");
     } catch {
       toast.error("Erro ao iniciar sincronização.");
     } finally {
@@ -431,7 +431,7 @@ export default function IntegrationsPage() {
               <div>
                 <CardTitle className="text-base">Shopify</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  Sincronize produtos e receba pedidos automaticamente.
+                  Sincronize produtos e coleções e receba pedidos automaticamente.
                 </p>
               </div>
             </div>
@@ -456,7 +456,7 @@ export default function IntegrationsPage() {
                     disabled={syncing}
                   >
                     <RefreshCw className="h-4 w-4" />
-                    {syncing ? "Sincronizando..." : "Sincronizar Produtos"}
+                    {syncing ? "Sincronizando..." : "Sincronizar catálogo"}
                   </Button>
                   <Button
                     variant="outline"

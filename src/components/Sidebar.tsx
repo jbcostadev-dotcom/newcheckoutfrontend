@@ -28,6 +28,7 @@ import {
   BadgePercent,
   ChevronDown,
   Monitor,
+  Layers,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -91,6 +92,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
         label: "Produtos",
         icon: Package,
         match: (p) => p.startsWith("/dashboard/products"),
+      },
+      {
+        href: "/dashboard/collections",
+        label: "Coleções",
+        icon: Layers,
+        match: (p) => p.startsWith("/dashboard/collections"),
       },
       {
         href: "/dashboard/clientes",
