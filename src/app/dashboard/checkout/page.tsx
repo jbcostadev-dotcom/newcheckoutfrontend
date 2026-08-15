@@ -16,6 +16,7 @@ import {
   Trash2,
   Pencil,
   Upload,
+  Download,
   X,
   User,
   Eye,
@@ -134,6 +135,99 @@ const DEFAULTS: CheckoutSettings = {
   card_pre_selected_installment: 1,
   card_installment_limit: 12,
 };
+
+const CHECKOUT_CONFIG_FORMAT = "jcheckout.checkout-settings";
+const CHECKOUT_CONFIG_VERSION = 1;
+const MAX_CONFIG_FILE_SIZE = 1024 * 1024;
+
+const NON_TRANSFERABLE_SETTING_KEYS = new Set<keyof CheckoutSettings>([
+  "store_id",
+  "pix_gateway_id",
+  "pix_gateway_ids",
+  "card_gateway_id",
+  "card_gateway_ids",
+  "boleto_gateway_id",
+  "boleto_gateway_ids",
+]);
+
+const EXPORTABLE_SETTING_KEYS = (
+  Object.keys(DEFAULTS) as Array<keyof CheckoutSettings>
+).filter((key) => !NON_TRANSFERABLE_SETTING_KEYS.has(key));
+
+interface CheckoutConfigFile {
+  format: typeof CHECKOUT_CONFIG_FORMAT;
+  version: typeof CHECKOUT_CONFIG_VERSION;
+  exported_at: string;
+  source_store?: string;
+  settings: Partial<CheckoutSettings>;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function transferableSettings(
+  source: Partial<CheckoutSettings>
+): Partial<CheckoutSettings> {
+  const result: Partial<CheckoutSettings> = {};
+
+  for (const key of EXPORTABLE_SETTING_KEYS) {
+    const value = source[key];
+    if (value !== undefined) {
+      Object.assign(result, { [key]: value });
+    }
+  }
+
+  return result;
+}
+
+function parseImportedSettings(value: unknown): Partial<CheckoutSettings> {
+  if (!isRecord(value)) {
+    throw new Error("O arquivo não contém uma configuração válida.");
+  }
+
+  let rawSettings: Record<string, unknown> = value;
+  if ("format" in value || "version" in value || "settings" in value) {
+    if (value.format !== CHECKOUT_CONFIG_FORMAT) {
+      throw new Error("Este arquivo não é uma configuração do jCheckout.");
+    }
+    if (value.version !== CHECKOUT_CONFIG_VERSION) {
+      throw new Error("A versão deste arquivo ainda não é compatível.");
+    }
+    if (!isRecord(value.settings)) {
+      throw new Error("O arquivo não contém configurações para importar.");
+    }
+    rawSettings = value.settings;
+  }
+
+  const imported: Partial<CheckoutSettings> = {};
+  let importedCount = 0;
+
+  for (const key of EXPORTABLE_SETTING_KEYS) {
+    if (!(key in rawSettings)) continue;
+
+    const valueToImport = rawSettings[key];
+    const defaultValue = DEFAULTS[key];
+    const isCompatible =
+      defaultValue === null
+        ? valueToImport === null || typeof valueToImport === "string"
+        : valueToImport !== null &&
+          typeof valueToImport === typeof defaultValue;
+
+    if (!isCompatible) {
+      throw new Error(`O campo "${key}" possui um valor inválido.`);
+    }
+
+    Object.assign(imported, { [key]: valueToImport });
+    importedCount += 1;
+  }
+
+  if (importedCount === 0) {
+    throw new Error("Nenhuma configuração compatível foi encontrada no arquivo.");
+  }
+
+  return imported;
+}
 
 interface SocialProofForm {
   name: string;
@@ -301,6 +395,7 @@ export default function CheckoutCustomizationPage() {
   const [device, setDevice] = useState<DeviceMode>("desktop");
   const [previewView, setPreviewView] = useState<PreviewView>("dados");
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const configFileInputRef = useRef<HTMLInputElement | null>(null);
 
 
 
@@ -660,6 +755,7 @@ export default function CheckoutCustomizationPage() {
       scarcity_counter_text_color: settings.scarcity_counter_text_color,
       pix_confirmation_title: settings.pix_confirmation_title,
       pix_confirmation_message: settings.pix_confirmation_message,
+      pix_confirmation_logo: settings.pix_confirmation_logo,
       footer_text: settings.footer_text,
       footer_show_store_name: settings.footer_show_store_name,
       footer_show_payment_methods: settings.footer_show_payment_methods,
@@ -740,11 +836,79 @@ export default function CheckoutCustomizationPage() {
       toast.success("Configurações salvas!");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao salvar configurações.";
-      // eslint-disable-next-line no-console
       console.error("[checkout/save]", err);
       toast.error(message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleExportConfig = () => {
+    if (!selectedStore) return;
+    if (logoFile || bannerFile) {
+      toast.error("Salve as novas imagens antes de exportar a configuração.");
+      return;
+    }
+
+    const exportFile: CheckoutConfigFile = {
+      format: CHECKOUT_CONFIG_FORMAT,
+      version: CHECKOUT_CONFIG_VERSION,
+      exported_at: new Date().toISOString(),
+      source_store: selectedStore.name,
+      settings: transferableSettings(settings),
+    };
+    const blob = new Blob([JSON.stringify(exportFile, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const safeStoreName = selectedStore.name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "loja";
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `checkout-${safeStoreName}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    toast.success("Configuração exportada!");
+  };
+
+  const handleImportConfig = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (file.size > MAX_CONFIG_FILE_SIZE) {
+      toast.error("O arquivo de configuração deve ter no máximo 1 MB.");
+      return;
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(await file.text());
+      const importedSettings = parseImportedSettings(parsed);
+
+      setSettings((current) => ({
+        ...current,
+        ...importedSettings,
+        store_id: current.store_id,
+      }));
+      setLogoFile(null);
+      setBannerFile(null);
+      setLogoPreview(null);
+      setBannerPreview(null);
+      toast.success("Configuração importada. Revise o preview e clique em Salvar.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível importar a configuração."
+      );
     }
   };
 
@@ -847,6 +1011,36 @@ export default function CheckoutCustomizationPage() {
               ))}
             </SelectContent>
           </Select>
+          <input
+            ref={configFileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="sr-only"
+            onChange={handleImportConfig}
+            aria-label="Selecionar configuração do checkout"
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => configFileInputRef.current?.click()}
+            className="gap-1.5"
+            title="Importar configuração"
+          >
+            <Upload className="h-4 w-4" />
+            <span className="hidden xl:inline">Importar</span>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={handleExportConfig}
+            className="gap-1.5"
+            title="Exportar configuração"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden xl:inline">Exportar</span>
+          </Button>
           <div className="h-6 w-px bg-border mx-1" />
           <Button
             size="sm"
