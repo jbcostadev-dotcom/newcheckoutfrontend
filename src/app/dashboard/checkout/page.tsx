@@ -1284,12 +1284,6 @@ export default function CheckoutCustomizationPage() {
               onCheckedChange={(v) => update("summary_show_discount", v)}
             />
             <ToggleRow
-              label="Mostrar parcelamento abaixo do total"
-              description="Usa o limite de parcelas e os juros configurados na gateway de cartão"
-              checked={settings.summary_show_installments ?? true}
-              onCheckedChange={(v) => update("summary_show_installments", v)}
-            />
-            <ToggleRow
               label="Cupom de desconto"
               description="Exibir campo para inserir cupom"
               checked={settings.summary_coupon_enabled ?? true}
@@ -1299,6 +1293,12 @@ export default function CheckoutCustomizationPage() {
 
           {/* Conteúdo das etapas */}
           <AccordionSection title="Configurações">
+            <ToggleRow
+              label="Ativar informações de parcelamento no resumo"
+              description="Exibe o limite de parcelas e aplica os juros configurados na gateway de cartão"
+              checked={settings.summary_show_installments ?? true}
+              onCheckedChange={(v) => update("summary_show_installments", v)}
+            />
             <FieldRow label="Família de fonte">
               <Select
                 value={settings.font_family ?? "Inter"}
