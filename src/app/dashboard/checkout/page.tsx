@@ -82,6 +82,7 @@ const DEFAULTS: CheckoutSettings = {
   summary_total_text_color: "#00A37C",
   summary_default_expanded: true,
   summary_show_discount: true,
+  summary_show_installments: true,
   summary_coupon_enabled: true,
   quantity_selector_enabled: true,
   step_title_font_size: "1.25rem",
@@ -609,6 +610,7 @@ export default function CheckoutCustomizationPage() {
           summary_total_text_color: settings.summary_total_text_color,
           summary_default_expanded: settings.summary_default_expanded,
           summary_show_discount: settings.summary_show_discount,
+          summary_show_installments: settings.summary_show_installments,
           summary_coupon_enabled: settings.summary_coupon_enabled,
           quantity_selector_enabled: settings.quantity_selector_enabled,
           step_title_font_size: settings.step_title_font_size,
@@ -737,6 +739,7 @@ export default function CheckoutCustomizationPage() {
       summary_total_text_color: settings.summary_total_text_color,
       summary_default_expanded: settings.summary_default_expanded,
       summary_show_discount: settings.summary_show_discount,
+      summary_show_installments: settings.summary_show_installments,
       summary_coupon_enabled: settings.summary_coupon_enabled,
       quantity_selector_enabled: settings.quantity_selector_enabled,
       step_title_font_size: settings.step_title_font_size,
@@ -1279,6 +1282,12 @@ export default function CheckoutCustomizationPage() {
               label="Mostrar descontos"
               checked={settings.summary_show_discount ?? true}
               onCheckedChange={(v) => update("summary_show_discount", v)}
+            />
+            <ToggleRow
+              label="Mostrar parcelamento abaixo do total"
+              description="Usa o limite de parcelas e os juros configurados na gateway de cartão"
+              checked={settings.summary_show_installments ?? true}
+              onCheckedChange={(v) => update("summary_show_installments", v)}
             />
             <ToggleRow
               label="Cupom de desconto"
