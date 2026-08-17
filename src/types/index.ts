@@ -277,6 +277,8 @@ export interface CheckoutSettings {
   font_family?: string;
   font_size_base?: string;
   social_proofs_enabled?: boolean;
+  accept_cpf?: boolean;
+  accept_cnpj?: boolean;
   pix_enabled?: boolean;
   pix_gateway_id?: number | null;
   pix_gateway_ids?: number[];

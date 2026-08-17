@@ -18,6 +18,8 @@ import {
   ChevronUp,
   ChevronDown,
   X,
+  UserRound,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -158,6 +160,8 @@ export default function GatewaysPage() {
     card_gateway_ids: [] as number[],
     boleto_enabled: false,
     boleto_gateway_ids: [] as number[],
+    accept_cpf: true,
+    accept_cnpj: false,
   });
   const [savingPayment, setSavingPayment] = useState(false);
 
@@ -189,6 +193,8 @@ export default function GatewaysPage() {
         card_gateway_ids: data.card_gateway_ids ?? (data.card_gateway_id ? [data.card_gateway_id] : []),
         boleto_enabled: data.boleto_enabled ?? false,
         boleto_gateway_ids: data.boleto_gateway_ids ?? (data.boleto_gateway_id ? [data.boleto_gateway_id] : []),
+        accept_cpf: data.accept_cpf ?? true,
+        accept_cnpj: data.accept_cnpj ?? false,
       });
     } catch {
       // silent - settings may not exist yet
@@ -241,6 +247,8 @@ export default function GatewaysPage() {
         boleto_enabled: paymentSettings.boleto_enabled,
         boleto_gateway_ids: paymentSettings.boleto_gateway_ids,
         boleto_gateway_id: paymentSettings.boleto_gateway_ids[0] ?? null,
+        accept_cpf: paymentSettings.accept_cpf,
+        accept_cnpj: paymentSettings.accept_cnpj,
       });
 
       toast.success("Métodos de pagamento salvos!");
@@ -256,6 +264,15 @@ export default function GatewaysPage() {
     value: (typeof paymentSettings)[K]
   ) => {
     setPaymentSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const updateAcceptedDocument = (key: "accept_cpf" | "accept_cnpj", value: boolean) => {
+    const otherKey = key === "accept_cpf" ? "accept_cnpj" : "accept_cpf";
+    if (!value && !paymentSettings[otherKey]) {
+      toast.error("Mantenha CPF ou CNPJ habilitado para processar pagamentos.");
+      return;
+    }
+    updatePayment(key, value);
   };
 
   /* ── Gateway list helpers ── */
@@ -654,6 +671,60 @@ export default function GatewaysPage() {
             })()}
           </div>
 
+          <div className="mt-5 border-t border-border/50 pt-5">
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold">Documentos aceitos no pagamento</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Escolha quais tipos de comprador podem finalizar pedidos no checkout.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-secondary/20 p-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <UserRound className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <Label htmlFor="accept-cpf" className="cursor-pointer text-sm font-semibold">
+                      Aceitar CPF no pagamento
+                    </Label>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                      Permite compras como pessoa física.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="accept-cpf"
+                  checked={paymentSettings.accept_cpf}
+                  onCheckedChange={(value) => updateAcceptedDocument("accept_cpf", value)}
+                  aria-label="Aceitar CPF no pagamento"
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-secondary/20 p-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Building2 className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <Label htmlFor="accept-cnpj" className="cursor-pointer text-sm font-semibold">
+                      Aceitar CNPJ no pagamento
+                    </Label>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                      Exibe a opção de pessoa jurídica no checkout.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="accept-cnpj"
+                  checked={paymentSettings.accept_cnpj}
+                  onCheckedChange={(value) => updateAcceptedDocument("accept_cnpj", value)}
+                  aria-label="Aceitar CNPJ no pagamento"
+                />
+              </div>
+            </div>
+          </div>
+
           {activeGateways.length === 0 && (
             <p className="text-[11px] text-muted-foreground text-center py-3 mt-3 border-t border-border/40">
               Nenhuma gateway ativa. Conecte uma gateway abaixo para usar nos métodos de pagamento.
@@ -871,6 +942,17 @@ export default function GatewaysPage() {
             <DialogDescription>
               Configure as credenciais do provedor de pagamento selecionado.
             </DialogDescription>
+            {form.provider === "unipay" && (
+              <a
+                href="https://developers.fastsoftbrasil.com/docs/intro/getting-started"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex w-fit items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                Ver documentação oficial da FastSoft
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
           </DialogHeader>
           <div className="space-y-5">
             <div className="space-y-2">
