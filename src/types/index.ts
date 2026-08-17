@@ -107,6 +107,37 @@ export interface Product {
   updated_at?: string;
 }
 
+export interface KitProduct extends Product {
+  pivot: {
+    kit_id?: number;
+    product_id?: number;
+    quantity: number;
+  };
+}
+
+export interface Kit {
+  id: number;
+  store_id: number;
+  name: string;
+  is_active: boolean;
+  products: KitProduct[];
+  products_count: number;
+  items_count: number;
+  subtotal: number;
+  checkout_url?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface KitFormData {
+  name: string;
+  is_active: boolean;
+  products: Array<{
+    product_id: number;
+    quantity: number;
+  }>;
+}
+
 export interface ShopifyCollection {
   id: number;
   store_id: number;

@@ -29,6 +29,7 @@ import {
   ChevronDown,
   Monitor,
   Layers,
+  Boxes,
   Webhook as WebhookIcon,
 } from "lucide-react";
 
@@ -93,6 +94,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
         label: "Produtos",
         icon: Package,
         match: (p) => p.startsWith("/dashboard/products"),
+      },
+      {
+        href: "/dashboard/kits",
+        label: "Kits",
+        icon: Boxes,
+        match: (p) => p.startsWith("/dashboard/kits"),
       },
       {
         href: "/dashboard/collections",
