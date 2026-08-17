@@ -31,6 +31,7 @@ import {
   Layers,
   Boxes,
   Webhook as WebhookIcon,
+  Gift,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -129,7 +130,8 @@ const NAV: { section: string; items: NavItem[] }[] = [
           p.startsWith("/dashboard/cupons") ||
           p.startsWith("/dashboard/redirecionamento") ||
           p.startsWith("/dashboard/email") ||
-          p.startsWith("/dashboard/whatsapp"),
+          p.startsWith("/dashboard/whatsapp") ||
+          p.startsWith("/dashboard/brindes"),
         children: [
           {
             href: "/dashboard/order-bump",
@@ -148,6 +150,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
             label: "Cupons",
             icon: TicketPercent,
             match: (p) => p.startsWith("/dashboard/cupons"),
+          },
+          {
+            href: "/dashboard/brindes",
+            label: "Brindes",
+            icon: Gift,
+            match: (p) => p.startsWith("/dashboard/brindes"),
           },
           {
             href: "/dashboard/marketing/descontos",

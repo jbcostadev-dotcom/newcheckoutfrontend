@@ -67,6 +67,13 @@ const DEFAULTS: CheckoutSettings = {
   upsell_text_color: "#1A1A1A",
   upsell_button_color: "#22C55E",
   upsell_button_text_color: "#FFFFFF",
+  gift_bg_color: "#F7FFFA",
+  gift_border_color: "#A4DFC1",
+  gift_badge_bg_color: "#FFFFFF",
+  gift_badge_border_color: "#6EE7B7",
+  gift_badge_text_color: "#10B981",
+  gift_progress_color: "#10B981",
+  gift_progress_bg_color: "#E5E7EB",
   dark_mode: true,
   button_text: "Finalizar Compra",
   banner_message: "Digite aqui a mensagem",
@@ -595,6 +602,13 @@ export default function CheckoutCustomizationPage() {
           upsell_text_color: settings.upsell_text_color,
           upsell_button_color: settings.upsell_button_color,
           upsell_button_text_color: settings.upsell_button_text_color,
+          gift_bg_color: settings.gift_bg_color,
+          gift_border_color: settings.gift_border_color,
+          gift_badge_bg_color: settings.gift_badge_bg_color,
+          gift_badge_border_color: settings.gift_badge_border_color,
+          gift_badge_text_color: settings.gift_badge_text_color,
+          gift_progress_color: settings.gift_progress_color,
+          gift_progress_bg_color: settings.gift_progress_bg_color,
           dark_mode: settings.dark_mode,
           button_text: settings.button_text,
           banner_message: settings.banner_message,
@@ -701,6 +715,11 @@ export default function CheckoutCustomizationPage() {
     selectPreviewView("upsell");
   };
 
+  const previewGift = () => {
+    postSettingsToIframe();
+    selectPreviewView("dados");
+  };
+
   useEffect(() => {
     if (!previewUrl) return;
     postSettingsToIframe();
@@ -724,6 +743,13 @@ export default function CheckoutCustomizationPage() {
       upsell_text_color: settings.upsell_text_color,
       upsell_button_color: settings.upsell_button_color,
       upsell_button_text_color: settings.upsell_button_text_color,
+      gift_bg_color: settings.gift_bg_color,
+      gift_border_color: settings.gift_border_color,
+      gift_badge_bg_color: settings.gift_badge_bg_color,
+      gift_badge_border_color: settings.gift_badge_border_color,
+      gift_badge_text_color: settings.gift_badge_text_color,
+      gift_progress_color: settings.gift_progress_color,
+      gift_progress_bg_color: settings.gift_progress_bg_color,
       dark_mode: settings.dark_mode,
       button_text: settings.button_text,
       banner_message: settings.banner_message,
@@ -1620,6 +1646,59 @@ export default function CheckoutCustomizationPage() {
                 </div>
               </FieldRow>
             )}
+          </AccordionSection>
+
+          <AccordionSection title="Brinde">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mb-3 w-full"
+              onClick={previewGift}
+            >
+              <Eye className="h-4 w-4" aria-hidden="true" />
+              Visualizar brinde
+            </Button>
+            <p className="pb-3 text-[11px] text-muted-foreground">
+              Personalize o card de brinde exibido abaixo dos produtos no resumo do checkout.
+            </p>
+            <div className="grid grid-cols-2 gap-3 pb-3">
+              <ColorField
+                label="Cor do fundo"
+                value={settings.gift_bg_color ?? "#F7FFFA"}
+                onChange={(value) => update("gift_bg_color", value)}
+              />
+              <ColorField
+                label="Cor da borda"
+                value={settings.gift_border_color ?? "#A4DFC1"}
+                onChange={(value) => update("gift_border_color", value)}
+              />
+              <ColorField
+                label="Cor do fundo do badge"
+                value={settings.gift_badge_bg_color ?? "#FFFFFF"}
+                onChange={(value) => update("gift_badge_bg_color", value)}
+              />
+              <ColorField
+                label="Cor da borda do badge"
+                value={settings.gift_badge_border_color ?? "#6EE7B7"}
+                onChange={(value) => update("gift_badge_border_color", value)}
+              />
+              <ColorField
+                label="Cor do texto do badge"
+                value={settings.gift_badge_text_color ?? "#10B981"}
+                onChange={(value) => update("gift_badge_text_color", value)}
+              />
+              <ColorField
+                label="Cor da barra de progresso"
+                value={settings.gift_progress_color ?? "#10B981"}
+                onChange={(value) => update("gift_progress_color", value)}
+              />
+              <ColorField
+                label="Cor do fundo da barra"
+                value={settings.gift_progress_bg_color ?? "#E5E7EB"}
+                onChange={(value) => update("gift_progress_bg_color", value)}
+              />
+            </div>
           </AccordionSection>
 
           <AccordionSection title="Upsell">

@@ -249,6 +249,13 @@ export interface CheckoutSettings {
   upsell_text_color?: string;
   upsell_button_color?: string;
   upsell_button_text_color?: string;
+  gift_bg_color?: string;
+  gift_border_color?: string;
+  gift_badge_bg_color?: string;
+  gift_badge_border_color?: string;
+  gift_badge_text_color?: string;
+  gift_progress_color?: string;
+  gift_progress_bg_color?: string;
   dark_mode: boolean;
   button_text?: string | null;
   banner_message?: string | null;
@@ -594,6 +601,39 @@ export interface OrderBumpFormData {
   offer_title: string;
   offer_message?: string | null;
   button_label: string;
+  is_active: boolean;
+}
+
+export type GiftRuleType = "always" | "min_quantity" | "min_value";
+export type GiftScope = "any" | "specific";
+
+export interface Gift {
+  id: number;
+  store_id: number;
+  name: string;
+  rule_type: GiftRuleType;
+  min_quantity?: number | null;
+  min_value?: number | null;
+  scope: GiftScope;
+  starts_at: string;
+  expires_at: string;
+  is_active: boolean;
+  products: Product[];
+  target_products: Product[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface GiftFormData {
+  name: string;
+  product_ids: number[];
+  starts_at: string;
+  expires_at: string;
+  rule_type: GiftRuleType;
+  min_quantity: number | null;
+  min_value: number | null;
+  scope: GiftScope;
+  target_product_ids: number[];
   is_active: boolean;
 }
 
