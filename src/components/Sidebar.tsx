@@ -29,6 +29,7 @@ import {
   ChevronDown,
   Monitor,
   Layers,
+  Webhook as WebhookIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -195,6 +196,12 @@ const NAV: { section: string; items: NavItem[] }[] = [
         label: "Integrações",
         icon: Plug,
         match: (p) => p.startsWith("/dashboard/integrations"),
+      },
+      {
+        href: "/dashboard/webhooks",
+        label: "Webhooks",
+        icon: WebhookIcon,
+        match: (p) => p.startsWith("/dashboard/webhooks"),
       },
       {
         href: "/dashboard/apps",

@@ -43,10 +43,10 @@ export default function DashboardLayout({
                   />
                 </>
               )}
-              <div className="flex flex-1 flex-col overflow-hidden pt-16 md:pt-0">
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden pt-16 md:pt-0">
                 <DashboardHeader onMenuClick={() => setMobileSidebarOpen(true)} />
-                <main className="flex-1 overflow-y-auto">
-                  <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">{children}</div>
+                <main className="min-w-0 flex-1 overflow-y-auto">
+                  <div className="mx-auto min-w-0 max-w-7xl p-4 sm:p-6 lg:p-8">{children}</div>
                 </main>
               </div>
             </div>
