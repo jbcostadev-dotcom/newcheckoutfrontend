@@ -8,8 +8,6 @@ import type {
   AbandonedCart,
   Paginated,
   AbandonedCartStatus,
-  AbandonedCartStep,
-  AbandonedCartReason,
 } from "@/types";
 import {
   ABANDONED_CART_STATUS_LABEL,
@@ -23,7 +21,6 @@ import {
   ChevronRight,
   Mail,
   MapPin,
-  CreditCard,
   Eye,
   RefreshCcw,
 } from "lucide-react";
@@ -58,6 +55,11 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  appendDateFilterParams,
+  DateFilterControls,
+  type DateFilterValue,
+} from "@/components/date-filter-controls";
 
 function statusVariant(status: AbandonedCartStatus) {
   switch (status) {
@@ -97,6 +99,11 @@ export default function AbandonedCartsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [stepFilter, setStepFilter] = useState<string>("all");
   const [reasonFilter, setReasonFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({
+    preset: "all",
+    from: "",
+    to: "",
+  });
   const [selectedCart, setSelectedCart] = useState<AbandonedCart | null>(null);
 
   const fetchCarts = useCallback(async () => {
@@ -108,6 +115,7 @@ export default function AbandonedCartsPage() {
       if (stepFilter !== "all") params.set("step", stepFilter);
       if (reasonFilter !== "all") params.set("reason", reasonFilter);
       if (search.trim()) params.set("search", search.trim());
+      appendDateFilterParams(params, dateFilter);
 
       const data = await api.get<Paginated<AbandonedCart>>(
         `/stores/${selectedStore.id}/abandoned-carts?${params}`
@@ -119,9 +127,11 @@ export default function AbandonedCartsPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedStore, page, statusFilter, stepFilter, reasonFilter, search]);
+  }, [selectedStore, page, statusFilter, stepFilter, reasonFilter, search, dateFilter]);
 
   useEffect(() => {
+    // The request owns the loading lifecycle for this client-side table.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCarts();
   }, [fetchCarts]);
 
@@ -146,75 +156,84 @@ export default function AbandonedCartsPage() {
       />
 
       {/* Filtros */}
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por cliente..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
+      <div className="-mx-1 mt-6 overflow-x-auto px-1 pb-2">
+        <div className="flex min-w-max items-center gap-2">
+          <div className="relative w-[240px] shrink-0">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por cliente..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="pl-9"
+            />
+          </div>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => {
+              setStatusFilter(v);
               setPage(1);
             }}
-            className="pl-9"
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="open">Aberto</SelectItem>
+              <SelectItem value="recovered">Recuperado</SelectItem>
+              <SelectItem value="converted">Convertido</SelectItem>
+              <SelectItem value="expired">Expirado</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={stepFilter}
+            onValueChange={(v) => {
+              setStepFilter(v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Etapa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as etapas</SelectItem>
+              <SelectItem value="dados">Identificação</SelectItem>
+              <SelectItem value="entrega">Entrega</SelectItem>
+              <SelectItem value="pagamento">Pagamento</SelectItem>
+              <SelectItem value="pagamento_tentado">Tentou pagar</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={reasonFilter}
+            onValueChange={(v) => {
+              setReasonFilter(v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[170px]">
+              <SelectValue placeholder="Motivo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos motivos</SelectItem>
+              <SelectItem value="left_dados">Saiu na identificação</SelectItem>
+              <SelectItem value="left_entrega">Saiu na entrega</SelectItem>
+              <SelectItem value="left_pagamento">Saiu no pagamento</SelectItem>
+              <SelectItem value="card_refused">Cartão recusado</SelectItem>
+              <SelectItem value="pix_expired">PIX expirou</SelectItem>
+              <SelectItem value="boleto_expired">Boleto expirou</SelectItem>
+            </SelectContent>
+          </Select>
+          <DateFilterControls
+            value={dateFilter}
+            onChange={(value) => {
+              setDateFilter(value);
+              setPage(1);
+            }}
           />
         </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(v) => {
-            setStatusFilter(v);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="open">Aberto</SelectItem>
-            <SelectItem value="recovered">Recuperado</SelectItem>
-            <SelectItem value="converted">Convertido</SelectItem>
-            <SelectItem value="expired">Expirado</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={stepFilter}
-          onValueChange={(v) => {
-            setStepFilter(v);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Etapa" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas etapas</SelectItem>
-            <SelectItem value="dados">Identificação</SelectItem>
-            <SelectItem value="entrega">Entrega</SelectItem>
-            <SelectItem value="pagamento">Pagamento</SelectItem>
-            <SelectItem value="pagamento_tentado">Tentou pagar</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={reasonFilter}
-          onValueChange={(v) => {
-            setReasonFilter(v);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-[170px]">
-            <SelectValue placeholder="Motivo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos motivos</SelectItem>
-            <SelectItem value="left_dados">Saiu na identificação</SelectItem>
-            <SelectItem value="left_entrega">Saiu na entrega</SelectItem>
-            <SelectItem value="left_pagamento">Saiu no pagamento</SelectItem>
-            <SelectItem value="card_refused">Cartão recusado</SelectItem>
-            <SelectItem value="pix_expired">PIX expirou</SelectItem>
-            <SelectItem value="boleto_expired">Boleto expirou</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Tabela */}

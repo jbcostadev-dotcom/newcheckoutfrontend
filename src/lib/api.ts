@@ -6,7 +6,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_URL) {
   // Silent warning in dev; the UI will surface friendly errors.
-  // eslint-disable-next-line no-console
   console.warn(
     "[api] NEXT_PUBLIC_API_URL não definida. Defina no .env do frontend."
   );
@@ -41,7 +40,7 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  let { body, auth = true, headers, ...rest } = options;
+  const { body, auth = true, headers, ...rest } = options;
   let method = options.method ?? "GET";
 
   const finalHeaders: Record<string, string> = {
@@ -51,7 +50,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   // FormData - let the browser set the multipart boundary
   // PHP/Laravel does not parse multipart bodies for PUT/PATCH, so spoof the method via POST.
-  let isFormData = body instanceof FormData;
+  const isFormData = body instanceof FormData;
   if (isFormData && method !== "GET" && method !== "POST") {
     const fd = body as FormData;
     if (!fd.has("_method")) {
@@ -104,6 +103,39 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return data as T;
 }
 
+async function download(path: string): Promise<{ blob: Blob; filename?: string }> {
+  const token = getToken();
+  const res = await fetch(`${API_URL}/api${path}`, {
+    headers: {
+      Accept: "text/csv",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (res.status === 401 && typeof window !== "undefined") {
+    setToken(null);
+    window.location.href = "/";
+  }
+
+  if (!res.ok) {
+    const isJson = res.headers.get("content-type")?.includes("application/json");
+    const data = isJson ? await res.json().catch(() => null) : null;
+    const message =
+      (data && typeof data === "object" && "message" in data
+        ? String((data as Record<string, unknown>).message)
+        : null) ?? `Erro ${res.status}`;
+    throw new ApiError(message, res.status, data);
+  }
+
+  const disposition = res.headers.get("content-disposition");
+  const filenameMatch = disposition?.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)/i);
+
+  return {
+    blob: await res.blob(),
+    filename: filenameMatch ? decodeURIComponent(filenameMatch[1]) : undefined,
+  };
+}
+
 export const api = {
   get: <T>(path: string, opts?: RequestOptions) =>
     request<T>(path, { ...opts, method: "GET" }),
@@ -115,6 +147,7 @@ export const api = {
     request<T>(path, { ...opts, method: "PATCH", body }),
   delete: <T>(path: string, opts?: RequestOptions) =>
     request<T>(path, { ...opts, method: "DELETE" }),
+  download,
   raw: () => API_URL ?? "",
 };
 

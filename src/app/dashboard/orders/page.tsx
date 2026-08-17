@@ -12,6 +12,7 @@ import {
   Mail,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -45,6 +46,11 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  appendDateFilterParams,
+  DateFilterControls,
+  type DateFilterValue,
+} from "@/components/date-filter-controls";
 
 function statusVariant(status: OrderStatus | string) {
   switch (status) {
@@ -90,6 +96,12 @@ export default function OrdersPage() {
   const [lastPage, setLastPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({
+    preset: "all",
+    from: "",
+    to: "",
+  });
+  const [exporting, setExporting] = useState(false);
 
   // Dialog de detalhes
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -101,6 +113,7 @@ export default function OrdersPage() {
       const params = new URLSearchParams({ page: String(page) });
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (search.trim()) params.set("search", search.trim());
+      appendDateFilterParams(params, dateFilter);
 
       const data = await api.get<Paginated<Order>>(
         `/stores/${selectedStore.id}/orders?${params}`
@@ -112,9 +125,11 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedStore, page, statusFilter, search]);
+  }, [selectedStore, page, statusFilter, search, dateFilter]);
 
   useEffect(() => {
+    // The request owns the loading lifecycle for this client-side table.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchOrders();
   }, [fetchOrders]);
 
@@ -127,6 +142,35 @@ export default function OrdersPage() {
     }
   };
 
+  const handleExport = async () => {
+    if (!selectedStore) return;
+
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (search.trim()) params.set("search", search.trim());
+      appendDateFilterParams(params, dateFilter);
+
+      const { blob, filename } = await api.download(
+        `/stores/${selectedStore.id}/orders/export?${params}`
+      );
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename ?? `pedidos-${selectedStore.id}.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+      toast.success("CSV baixado com sucesso.");
+    } catch {
+      toast.error("Erro ao baixar o CSV de pedidos.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
       <PageHeader
@@ -135,43 +179,62 @@ export default function OrdersPage() {
       />
 
       {/* Filtros */}
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por cliente..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
+      <div className="-mx-1 mt-6 overflow-x-auto px-1 pb-2">
+        <div className="flex min-w-max items-center gap-2">
+          <div className="relative w-[240px] shrink-0">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por cliente..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="pl-9"
+            />
+          </div>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => {
+              setStatusFilter(v);
               setPage(1);
             }}
-            className="pl-9"
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="pending">Pendente</SelectItem>
+              <SelectItem value="processing">Processando</SelectItem>
+              <SelectItem value="waiting_payment">Aguardando Pagamento</SelectItem>
+              <SelectItem value="in_analysis">Em Análise</SelectItem>
+              <SelectItem value="authorized">Autorizado</SelectItem>
+              <SelectItem value="paid">Pago</SelectItem>
+              <SelectItem value="failed">Recusado</SelectItem>
+              <SelectItem value="refunded">Reembolsado</SelectItem>
+              <SelectItem value="chargedback">Chargeback</SelectItem>
+              <SelectItem value="canceled">Cancelado</SelectItem>
+            </SelectContent>
+          </Select>
+          <DateFilterControls
+            value={dateFilter}
+            onChange={(value) => {
+              setDateFilter(value);
+              setPage(1);
+            }}
           />
+          <Button
+            type="button"
+            variant="outline"
+            className="shrink-0"
+            disabled={exporting}
+            onClick={handleExport}
+          >
+            <Download className="h-4 w-4" />
+            {exporting ? "Baixando..." : "Baixar CSV"}
+          </Button>
         </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(v) => {
-            setStatusFilter(v);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="pending">Pendente</SelectItem>
-            <SelectItem value="processing">Processando</SelectItem>
-            <SelectItem value="waiting_payment">Aguardando Pagamento</SelectItem>
-            <SelectItem value="in_analysis">Em Análise</SelectItem>
-            <SelectItem value="authorized">Autorizado</SelectItem>
-            <SelectItem value="paid">Pago</SelectItem>
-            <SelectItem value="failed">Recusado</SelectItem>
-            <SelectItem value="refunded">Reembolsado</SelectItem>
-            <SelectItem value="chargedback">Chargeback</SelectItem>
-            <SelectItem value="canceled">Cancelado</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Tabela */}
